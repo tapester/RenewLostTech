@@ -61,6 +61,8 @@ target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
 target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
 
 if(WIN32)
+    target_compile_definitions(LostTech PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
+    target_compile_definitions(LostTechNoGUI PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
     target_link_libraries(LostTech PRIVATE gdi32 ole32 comdlg32 uuid)
 endif()
 
