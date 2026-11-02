@@ -34,6 +34,7 @@ set(GUI_SOURCE_FILES
         src/ui/WavePlugResource.rc
         )
 
+# The no-GUI target reuses WavePlug.cpp through a wrapper that defines WP_NO_GUI.
 set(NOGUI_SOURCE_FILES
         ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
@@ -61,6 +62,7 @@ target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
 target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
 
 if(WIN32)
+    # Match the bundled VSTGUI's minimum API level and avoid conflicting SDK defaults.
     target_compile_definitions(LostTech PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
     target_compile_definitions(LostTechNoGUI PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
     target_link_libraries(LostTech PRIVATE gdi32 ole32 comdlg32 uuid)

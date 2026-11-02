@@ -48,6 +48,7 @@ private:
 	float aValue, fValue, oversamplingMultiplierF, sampleFraction;
 	
 public:
+	// Wire the modulators and allocator, then create the output and smoothing buffers.
 	void initialize(
 		BufferManager *bMan,
 		UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
@@ -78,6 +79,7 @@ public:
 	void setSmoothingWindow(int smooWin);
 	
 	void tick() {
+		// Refill before consuming the last buffered sample to keep output continuous.
 		if (start == last)
 			fillBuffer();
 		start = SAMPLEINC(start+1);
@@ -89,7 +91,9 @@ public:
 	
 private:
 	void fillBuffer();
+	// Generate one waveform cycle; zero means the ring buffer currently has no room.
 	int loadCycle(float a, float f);
+	// Blend adjacent cycles at their boundary to reduce waveform discontinuities.
 	void applySmoothing(int windowPos);
 };
 

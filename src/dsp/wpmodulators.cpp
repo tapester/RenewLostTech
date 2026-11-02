@@ -50,6 +50,7 @@ void Modulator::initialize(float lfoDiv, bool lfoRateDependent) {
 void Modulator::setMix(float mx) {
 	mix1 = 1.0f - mx;
 	mix2 = mx;
+	// Increase distortion depth exponentially across the normalized mix range.
 	mixDist = std::pow(2.0f, 4.0f*mx) - 1.0f;
 	lfoIncrement = (rateDependentLFO)
 	               ? (mx*WP_STD_SAMPLE_RATE)/(lfoDivisor*globalSampleRate)
@@ -289,6 +290,7 @@ float FunctionModulator::computeTop(float x) {
 }
 
 float FunctionModulator::computeComp(float x) {
+	// Feed the first waveform's value into the second waveform as its phase.
 	float v1 = in1->getValue(x);
 	float v2 = in2->getValue(v1);
 	return v1 + mix2*(v2 - v1);
@@ -299,7 +301,7 @@ float FunctionModulator::computeConv(float x) {
 	if (cycleTau > 1.0f) // Treat in1 waveform as a periodic signal.
 		cycleTau -= 2.0f;
 	
-	// Convolve in1 with the IR formed by taking hSize samples from in2.
+	// Convolve one cycle of in1 with a sampled impulse response from in2.
 	for (int k = 0; k < hSizeI; k++) {
 		acc += in1->getValue(cycleTau) * in2->getValue(hTau);
 		

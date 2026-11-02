@@ -118,6 +118,7 @@ private: // private data members
 		float preA1, postA1, preF1, postF1, preA2, postA2, preF2, postF2;
 		
 		// ---<<< Update fields (what the processing thread should change) >>>---
+		// Host-thread requests are consumed and cleared at the next audio callback.
 		bool reinitFlag, resetFlag, setProcessHandlersFlag;
 		float newSampleRate, newParamValues[kNumAllParams];
 		

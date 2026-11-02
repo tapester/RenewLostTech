@@ -43,14 +43,18 @@ private:
 	float aWeightModifier, aIncWNew, aDecWNew, fWNew, wWNew, amplitude, frequency, maxSample;
 	
 public:
+	// Bind the analyzer to its owner's buffer allocator and allocate its waveform buffers.
 	void initialize(BufferManager *bMan, int bufferSize = 0);
+	// Clear trigger history and restart analysis from the supplied signal estimate.
 	void reset(float a = 1.0e-8f, float fHz = 440.0f); // 440Hz = concert A.
 	
+	// These function views point at the analyzer's current amplitude, frequency, and waveform.
 	RealFunction *getAmpFunction() {return &ampFunc;}
 	RealFunction *getFreqFunction() {return &freqFunc;}
 	FunctionFunction *getWaveFunction() {return &waveFunc;}
 	
 	int getBufferSize() {return waveBufferSize;}
+	// Replaces both waveform buffers; returns false if either allocation fails.
 	bool setBufferSize(int bufferSize);
 	
 	float getAIncWeight() {return aIncW;}
@@ -79,6 +83,7 @@ public:
 	void setTrigInverted(bool onOff);
 	void setWInterpolation(bool onOff) {waveFunc.setInterpolation(onOff);}
 	
+	// Feed one input sample; completed cycles update the frequency and waveform views.
 	void addSample(float sample);
 	
 	float getAmplitude() {return amplitude;}

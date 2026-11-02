@@ -21,6 +21,7 @@ DEALINGS IN THE SOFTWARE.
 #ifndef WP_WAVEPLUGPARAMS_H
 #define WP_WAVEPLUGPARAMS_H
 
+// The version and buffer-size controls apply once to the whole plug-in.
 enum {
 	kPlugVersion,
 	kBufferSize,
@@ -28,6 +29,7 @@ enum {
 	kNumMonoParams
 };
 
+// These parameter indexes are repeated for each of the two stereo channels.
 enum { // Parameter indexes.
 	kAIncLag, // 0
 	kADecLag,
@@ -65,6 +67,7 @@ enum { // Parameter indexes.
 };
 
 enum {
+	// VST parameter order is mono controls first, followed by channel 1 then channel 2.
 	kNumStereoParams = 2 * kNumParams,
 	kNumAllParams = kNumMonoParams + kNumStereoParams
 };

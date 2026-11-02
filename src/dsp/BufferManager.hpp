@@ -32,9 +32,11 @@ private:
 	static void deleteBuffer(T *ptr) {delete[] ptr;}
 	
 protected:
+	// Serializes allocation bookkeeping shared by processing and host/editor callbacks.
 	CRITICAL_SECTION myCriticalSection;
 	
 private:
+	// Buffers remain owned here until explicitly deleted or the manager is destroyed.
 	std::vector<int *> *intBuffers;
 	std::vector<float *> *floatBuffers;
 	
@@ -46,6 +48,7 @@ public:
 	int *newIntBuffer(int size);
 	float *newFloatBuffer(int size);
 	
+	// Returns false for a pointer that is not currently owned by this manager.
 	bool deleteIntBuffer(int *ptr);
 	bool deleteFloatBuffer(float *ptr);
 };

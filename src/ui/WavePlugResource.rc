@@ -22,7 +22,7 @@ DEALINGS IN THE SOFTWARE.
 
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
-// Bitmaps.
+// Resource IDs are consumed by WavePlugEditor; bitmap paths are relative to the project root.
 128 BITMAP DISCARDABLE "resources/back.bmp"
 129 BITMAP DISCARDABLE "resources/logo.bmp"
 130 BITMAP DISCARDABLE "resources/small_button.bmp"

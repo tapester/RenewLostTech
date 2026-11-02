@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 
 #define WP_STD_SAMPLE_RATE (44100.0f)
 
+// Shared sample-rate limits used to translate between Hz and normalized frequency.
 extern float globalSampleRate;
 
 extern float globalMaxFrequency;
@@ -44,6 +45,7 @@ WP_EXT_INLINE float sampleRateToMaxFreq(float sampleRate) {
 	return (sampleRate - 100.0f)/2.0f;
 }
 
+// Keep frequency normalization compatible with the 44.1 kHz reference range.
 WP_EXT_INLINE void setGlobalSampleRate(float sampleRate) {
 	globalSampleRate = sampleRate;
 	globalMaxFrequency =
@@ -95,9 +97,8 @@ public:
 	bool getInterpolation() {return interpolation;}
 	void setInterpolation(bool onOff) {interpolation = onOff;}
 	
-	// f must point to a buffer containing fSizePlus1 samples.
-	// The last sample in the buffer (at offset (fSizePlus1 - 1))
-	// must be the first sample of the next waveform.
+	// The buffer includes a duplicate next-cycle sample so interpolation can cross
+	// the cycle boundary without a separate wrap check.
 	//void setFunction(int fSizePlus1, float *f);
 	//float getValue(float x);
 	

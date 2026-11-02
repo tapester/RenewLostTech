@@ -24,6 +24,7 @@ DEALINGS IN THE SOFTWARE.
 #include "wpfunc.hpp"
 
 // TODO: Move these enums and arrays inside the Modulator subclasses.
+// Modulator modes for unsigned amplitude/frequency control signals.
 enum ModulationTypeU {
 	kModTypeUAdd,
 	kModTypeUMinDiff,
@@ -39,6 +40,7 @@ enum ModulationTypeU {
 
 extern const char *const modTypeUNames[kNModTypesU];
 
+// Modulator modes for signed audio output signals.
 enum ModulationTypeS {
 	kModTypeSAdd,
 	kModTypeSDiff,
@@ -52,6 +54,7 @@ enum ModulationTypeS {
 
 extern const char *const modTypeSNames[kNModTypesS];
 
+// Modulator modes that combine two periodic waveform functions.
 enum ModulationTypeF {
 	kModTypeFAdd,
 	kModTypeFDiff,
@@ -73,9 +76,11 @@ protected:
 	bool rateDependentLFO;
 	
 public:
+	// lfoRateDependent selects whether the LFO rate follows the host sample rate.
 	void initialize(float lfoDiv, bool lfoRateDependent);
 	
 	float getMix() {return mix2;}
+	// Mix also determines distortion depth and the modulation LFO increment.
 	void setMix(float mx);
 	
 	float getLFODivisor() {return lfoDivisor;}
@@ -181,6 +186,7 @@ public:
 	
 	void setMix(float mx);
 	
+	// Set the normalized sample spacing for the current synthesized waveform cycle.
 	void setCycleSize(float nSamples) {
 		cycleDelta = 2.0f/nSamples;
 		halfIRWidth = std::fmod(0.5f*(hSizeF-1.0f)*cycleDelta, 2.0f);

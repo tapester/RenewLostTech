@@ -31,7 +31,7 @@ DEALINGS IN THE SOFTWARE.
 #include "WavePlugEditor.hpp"
 #endif
 
-// Parameter transform macros.
+// Convert the host's normalized [0,1] parameter values into DSP-domain settings.
 #define BUFFER_SIZE_T(v) (1 << (int) (7.0f*(v) + 0.5f))
 
 #define INC_LAG_T(v) (std::pow(std::log10(9.0f*(v) + 1.0f), 0.2f))
@@ -626,6 +626,7 @@ void WavePlug::WavePlugData::clearUpdateFields() {
 
 void WavePlug::doThreadSynchronizedDataExchange() {
 	
+	// Snapshot host updates under the lock, then apply them on the audio thread unlocked.
 	EnterCriticalSection(&myCriticalSection);
 	
 	// Update signal monitors.
@@ -655,7 +656,7 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 	if (processingData.setProcessHandlersFlag)
 		setProcHandlers();
 	
-	if (!processingData.operational) // SYSTEM ATE SHIT.
+	if (!processingData.operational) // An unrecoverable setup error disables processing.
 		return;
 	
 	if (processingData.resetFlag) {
