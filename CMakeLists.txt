@@ -1,51 +1,78 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 project(LostTech)
 
 add_subdirectory(dependencies/vstsdk2.4/public.sdk)
 add_subdirectory(dependencies/vstsdk2.4/vstgui.sf)
 
-set(SOURCE_FILES
-        Analyzer.cpp
-        Analyzer.hpp
-        BufferManager.cpp
-        BufferManager.hpp
-        Synthesizer.cpp
-        Synthesizer.hpp
-        WavePlug.hpp
-        WavePlugEditor.cpp
-        WavePlugEditor.hpp
-        waveplugparams.h
-        WavePlugResource.rc
-        wpfunc.cpp
-        wpfunc.hpp
-        wpmodulators.cpp
-        wpmodulators.hpp
-        wpstdinclude.h
+set(DSP_SOURCE_FILES
+        src/dsp/Analyzer.cpp
+        src/dsp/Analyzer.hpp
+        src/dsp/BufferManager.cpp
+        src/dsp/BufferManager.hpp
+        src/dsp/Synthesizer.cpp
+        src/dsp/Synthesizer.hpp
+        src/dsp/wpfunc.cpp
+        src/dsp/wpfunc.hpp
+        src/dsp/wpmodulators.cpp
+        src/dsp/wpmodulators.hpp
+        )
+
+set(PLUGIN_COMMON_FILES
+        src/common/wpstdinclude.h
+        src/plugin/WavePlug.hpp
+        src/plugin/WavePlugParameters.cpp
+        src/plugin/waveplugparams.h
         )
 
 set(GUI_SOURCE_FILES
-        WavePlug.cpp
-        WavePlugMain.cpp
+        ${DSP_SOURCE_FILES}
+        ${PLUGIN_COMMON_FILES}
+        src/plugin/WavePlug.cpp
+        src/plugin/WavePlugMain.cpp
+        src/ui/WavePlugEditor.cpp
+        src/ui/WavePlugEditor.hpp
+        src/ui/WavePlugResource.rc
         )
 
 set(NOGUI_SOURCE_FILES
-        WavePlugMainNoGUI.cpp
-        WavePlugNoGUI.cpp
+        ${DSP_SOURCE_FILES}
+        ${PLUGIN_COMMON_FILES}
+        src/plugin/WavePlugMainNoGUI.cpp
+        src/plugin/WavePlugNoGUI.cpp
         )
 
-add_library(LostTech SHARED ${SOURCE_FILES} ${GUI_SOURCE_FILES})
-add_library(LostTechNoGUI SHARED ${SOURCE_FILES} ${NOGUI_SOURCE_FILES})
+add_library(LostTech SHARED ${GUI_SOURCE_FILES} LostTech.def)
+add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
 
 target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 
-#target_include_directories(VSTSDK2_4 PUBLIC source/vst2.x)
+set(PLUGIN_INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        src/common
+        src/dsp
+        src/plugin
+        src/ui
+        )
+target_include_directories(LostTech PRIVATE ${PLUGIN_INCLUDE_DIRS})
+target_include_directories(LostTechNoGUI PRIVATE ${PLUGIN_INCLUDE_DIRS})
 
-target_link_libraries(LostTech PUBLIC VSTSDK2_4 vstgui -static-libgcc -static-libstdc++)
-target_link_libraries(LostTechNoGUI PUBLIC VSTSDK2_4 vstgui -static-libgcc -static-libstdc++)
+target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
+target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
+
+if(WIN32)
+    target_link_libraries(LostTech PRIVATE gdi32 ole32 comdlg32 uuid)
+endif()
 
 SET_TARGET_PROPERTIES(LostTech PROPERTIES CXX_VISIBILITY_PRESET hidden)
 SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 SET_TARGET_PROPERTIES(LostTech PROPERTIES PREFIX "")
 SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES PREFIX "")
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(wpfunc_tests tests/dsp/wpfunc_tests.cpp src/dsp/wpfunc.cpp)
+    target_include_directories(wpfunc_tests PRIVATE src/dsp)
+    add_test(NAME wpfunc_tests COMMAND wpfunc_tests)
+endif()

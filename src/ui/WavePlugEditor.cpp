@@ -39,6 +39,7 @@ enum { // Resource ID:s.
 	kEndResources = kKnobHandle8 + 7
 };
 
+// Positions use 64-pixel cells; the first parameter block is channel 1, the second channel 2.
 const int WavePlugEditor::controlPositions[kNParamControls][2] = {
 	{0 * 64, 20 + 0 * 64}, // 1 kAIncLag, // 0
 	{1 * 64, 20 + 0 * 64}, // 1 kADecLag,
@@ -193,6 +194,7 @@ const int WavePlugEditor::handleBitmapIds[kNumParams] = {
 	kKnobHandle8 + 6 // kOModMix
 };
 
+// Maps each parameter to the component lock that can also control it.
 const int WavePlugEditor::paramComponentNumber[kNumParams] = {
 	0,0,0,0, 0,0,0,0, 0,0,0,0, // Analyzer,
 	1,1, // AMod,
@@ -399,7 +401,7 @@ void WavePlugEditor::close() {
 void WavePlugEditor::idle() {
 	AEffGUIEditor::idle();
 	
-	// Update amplitude and frequency displays.
+	// Refresh live signal meters and buffer readouts while the host services the editor.
 	aDisp0Pre->setValue(wavePlug->getAmplitude(0));
 	aDisp1Pre->setValue(wavePlug->getAmplitude(1));
 	
@@ -418,7 +420,7 @@ void WavePlugEditor::idle() {
 	bufrDispHz->setValue(bufferSizeParamValue);
 	bufrDispMillis->setValue(bufferSizeParamValue);
 	
-	// Update help display.
+	// Defer help-text lookup until idle so control callbacks only record the touched parameter.
 	if (showHelp & paramTouched) {
 		helpDisplay->setText(wavePlug->getParamHelpText(lastTouchedParamIndex));
 		helpDisplay->setDirty();
@@ -445,7 +447,7 @@ void WavePlugEditor::setParameter(VstInt32 index, float value) {
 	}
 }
 
-void WavePlugEditor::valueChanged(CDrawContext* context, CControl* control) {
+void WavePlugEditor::valueChanged(CControl* control) {
 	long tag = control->getTag();
 	float value = control->getValue();
 	
@@ -469,6 +471,7 @@ void WavePlugEditor::valueChanged(CDrawContext* context, CControl* control) {
 		long stereoIndex = tag - kNumMonoParams;
 		int paramTypeIndex = stereoIndex % kNumParams;
 		
+		// A parameter, component, or global lock links this edit across both channels.
 		if (*globalLock ||
 		    componentLocks[paramComponentNumber[paramTypeIndex]] ||
 		    paramLocks[paramTypeIndex]) {
@@ -558,7 +561,7 @@ void WavePlugEditor::initLockButton(int index, const int *pos, CBitmap *lockBitm
 }
 
 CParamDisplay *WavePlugEditor::initMonitor(CRect &size, void (*converter)(float, char *), float value,
-                                           CColor *tColorP, CColor *fColorP, CColor *bColorP,
+                                           const CColor *tColorP, const CColor *fColorP, const CColor *bColorP,
                                            CHoriTxtAlign hAlign) {
 	
 	CColor tColor = (fColorP) ? *tColorP : displayFontColor,

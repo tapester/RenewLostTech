@@ -1,7 +1,35 @@
 # Lost Technology
 
-### Original notes from the author
+### Project background
 
-This is the source release, consisting of the makefile, C++ source code, resource bitmaps and reference manual. The package includes source for both variants of the plugin. To build either variant, you need the [VST Audio Plug-Ins SDK](http://ygrabit.steinberg.de/~ygrabit/public_html/index.html). To build the plugin with custom GUI, you also need the VSTGUI source library. The plugin was developed with tools from the [MinGW](http://www.mingw.org/) project, version 2.3 of the SDK and version 3.0beta4 of the GUI library; I have not attempted to build it with any other tools or library versions.
+This project contains GUI and no-GUI variants of the Lost Technology VST 2 plug-in. It uses the VST 2.4 API and the bundled VSTGUI source.
 
-**IMPORTANT NOTE:** The source code has not been edited to be easy to compile or understand for anyone but me. There is no systematic code documentation and you will almost certainly need to do some tweaking of the makefile and/or C++ code to get a successful build. 
+The supported build is CMake. The old MinGW makefile is retained under `legacy/` for historical reference and is not maintained.
+
+### Source layout
+
+- `src/plugin/` contains the VST effect, parameter definitions, and plug-in entry points.
+- `src/dsp/` contains the analyzer, synthesizer, modulation, buffer, and signal utility code.
+- `src/ui/` contains the VSTGUI editor and Windows resource script.
+- `src/common/` contains headers shared across those layers.
+- `resources/` and `docs/` contain UI assets and user-facing documentation.
+- `dependencies/vstsdk2.4/` contains the bundled VST 2.4 SDK and VSTGUI sources; see [THIRD_PARTY.md](THIRD_PARTY.md).
+
+### Building on Windows (64-bit)
+
+The VST 2.4 SDK and VSTGUI sources must be present in `dependencies/vstsdk2.4`. From an x64 Visual Studio developer shell with CMake available, run:
+
+```powershell
+cmake -S . -B build-win64 -A x64
+cmake --build build-win64 --config Release
+```
+
+The GUI plug-in is written to `build-win64\Release\LostTech.dll`; the alternative without a GUI is `build-win64\Release\LostTechNoGUI.dll`. These are 64-bit VST 2 plug-ins.
+
+The Visual Studio generator stores configuration-specific binaries under `Release`. Other CMake generators may use a different output location.
+
+Run the focused DSP utility tests with:
+
+```powershell
+ctest --test-dir build-win64 -C Release --output-on-failure
+```

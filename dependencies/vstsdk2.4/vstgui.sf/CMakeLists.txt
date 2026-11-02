@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 project(vstgui)
 
 set(SOURCE_FILES
@@ -20,7 +20,6 @@ set(SOURCE_FILES
         vstgui/vstplugscarbon.h
         vstgui/vstplugsmac.h
         vstgui/vstplugsmacho.h
-        vstgui/vstplugsquartz.h
         )
 
 add_library(vstgui STATIC ${SOURCE_FILES})
