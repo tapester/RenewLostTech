@@ -396,10 +396,14 @@ void WavePlugEditor::close() {
 		delete frame;
 		frame = NULL;
 	}
+
+	AEffGUIEditor::close();
 }
 
 void WavePlugEditor::idle() {
 	AEffGUIEditor::idle();
+	if (!frame)
+		return;
 	
 	// Refresh live signal meters and buffer readouts while the host services the editor.
 	aDisp0Pre->setValue(wavePlug->getAmplitude(0));
