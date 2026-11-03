@@ -24,6 +24,14 @@ cmake -S . -B build-win64 -A x64
 cmake --build build-win64 --config Release
 ```
 
+To build the GUI plug-in with debug symbols and no optimization, use the Debug configuration:
+
+```powershell
+cmake --build build-win64 --config Debug --target LostTechDebug
+```
+
+This writes `build-win64\Debug\LostTech.dll` with the Visual Studio generator. You can also build the ordinary `LostTech` target with `--config Debug`.
+
 The GUI plug-in is written to `build-win64\Release\LostTech.dll`; the alternative without a GUI is `build-win64\Release\LostTechNoGUI.dll`. These are 64-bit VST 2 plug-ins.
 
 The Visual Studio generator stores configuration-specific binaries under `Release`. Other CMake generators may use a different output location.

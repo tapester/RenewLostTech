@@ -391,6 +391,14 @@ bool WavePlugEditor::open(void *ptr) {
 }
 
 void WavePlugEditor::close() {
+	CFrame *oldFrame = frame;
+	frame = NULL;
+
+	delete oldFrame;
+
+	AEffGUIEditor::close();
+
+	/* Previous implementation, retained for easy reversion:
 	// NOTE: GUI components and their bitmaps are deleted by ~CFrame.
 	if (frame != NULL) {
 		delete frame;
@@ -398,6 +406,7 @@ void WavePlugEditor::close() {
 	}
 
 	AEffGUIEditor::close();
+	*/
 }
 
 void WavePlugEditor::idle() {

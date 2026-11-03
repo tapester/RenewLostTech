@@ -45,6 +45,9 @@ set(NOGUI_SOURCE_FILES
 add_library(LostTech SHARED ${GUI_SOURCE_FILES} LostTech.def)
 add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
 
+# Convenience target for building the GUI plug-in with the Debug configuration.
+add_custom_target(LostTechDebug DEPENDS LostTech)
+
 target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 
