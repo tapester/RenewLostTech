@@ -32,6 +32,7 @@ DEALINGS IN THE SOFTWARE.
 #endif
 
 // Debugging: trap floating-point exceptions on MSVC debug builds. This is a no-op on other compilers and build configurations.
+/*
 #include <float.h>
 #if defined(_DEBUG) && defined(_MSC_VER)
    struct FpTrap {
@@ -41,6 +42,7 @@ DEALINGS IN THE SOFTWARE.
        ~FpTrap() { _clearfp(); _controlfp_s(&cur, prev, _MCW_EM); }
    };   
 #endif
+*/
 
 #include <xmmintrin.h>
 struct ScopedFtz {
@@ -549,7 +551,7 @@ void WavePlug::processReplacing(float **inputs, float **outputs, VstInt32 sample
 	// NOTE: The VST SDK documentation states that the processReplacing method is called
 	// with the denormalized flush-to-zero mode enabled. However, some hosts (e.g., Reaper) do not enable this mode, so we enable it here to be safe.
 	#if defined(_DEBUG) && defined(_MSC_VER)
-		FpTrap fpTrap;      // Debug only: stop at the first invalid floating-point operation
+		// FpTrap fpTrap;      // Debug only: stop at the first invalid floating-point operation
 	#endif
 	ScopedFtz ftz;      // flush denormals to zero while processing
 
