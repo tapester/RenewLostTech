@@ -122,34 +122,51 @@ if(BUILD_TESTING)
 endif()
 
 # ---------------------------------------------------------------------------
-# pluginval (local validation / debugging). Optional: only active if the exe exists.
+# pluginval (validation / debugging). Optional: only active on Windows if the exe exists.
+# Adds CTest entries for the GUI and no-GUI plug-ins:
+#   ctest --test-dir build-win64 -C Release --output-on-failure -R pluginval
 # ---------------------------------------------------------------------------
 set(PLUGINVAL_EXE "${CMAKE_CURRENT_SOURCE_DIR}/tools/pluginval/pluginval.exe"
     CACHE FILEPATH "Path to pluginval.exe")
-set(PLUGINVAL_STRICTNESS 6 CACHE STRING "pluginval strictness level (1-10)")
+set(PLUGINVAL_STRICTNESS 10 CACHE STRING "pluginval strictness level (1-10)")
+set(PLUGINVAL_REPEAT 3 CACHE STRING "Number of times pluginval repeats the tests")
+set(PLUGINVAL_SEED "0x44c4e05" CACHE STRING "Fixed pluginval random seed for reproducible runs (empty = random)")
+set(PLUGINVAL_TIMEOUT 900 CACHE STRING "CTest timeout per pluginval test, in seconds")
 
 if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
-    set(PLUGINVAL_ARGS --strictness-level ${PLUGINVAL_STRICTNESS} --verbose)
+    set(PLUGINVAL_ARGS
+        --strictness-level ${PLUGINVAL_STRICTNESS}
+        --repeat ${PLUGINVAL_REPEAT}
+        --randomise)
+    if(PLUGINVAL_SEED)
+        list(APPEND PLUGINVAL_ARGS --random-seed ${PLUGINVAL_SEED})
+    endif()
 
     # F5 in Visual Studio on the LostTech project launches pluginval with the DLL loaded,
-    # so the debugger stops on the crash with LostTech.pdb available.
+    # so the debugger stops on a crash with LostTech.pdb available.
     # (Only honoured by the Visual Studio generators.)
     string(REPLACE ";" " " PLUGINVAL_ARGS_STR "${PLUGINVAL_ARGS}")
     set_target_properties(LostTech PROPERTIES
         VS_DEBUGGER_COMMAND           "${PLUGINVAL_EXE}"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} \"$<TARGET_FILE:LostTech>\""
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} --verbose \"$<TARGET_FILE:LostTech>\""
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:LostTech>")
 
-    # Command-line run: cmake --build build-win64 --config Debug --target validate_losttech
-    add_custom_target(validate_losttech
-        COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:LostTech>"
-        DEPENDS LostTech
-        USES_TERMINAL
-        COMMENT "Validating LostTech with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+    # One build target and one CTest entry per plug-in variant.
+    # Command line: cmake --build build-win64 --config Release --target validate_losttech
+    foreach(PV_TARGET LostTech LostTechNoGUI)
+        string(TOLOWER ${PV_TARGET} PV_NAME)
 
-    # Also runnable through the existing CTest setup (needs a desktop session: it opens the editor).
-    if(BUILD_TESTING)
-        add_test(NAME pluginval_losttech
-                 COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:LostTech>")
-    endif()
+        add_custom_target(validate_${PV_NAME}
+            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>"
+            DEPENDS ${PV_TARGET}
+            USES_TERMINAL
+            COMMENT "Validating ${PV_TARGET} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
+        # The GUI variant opens its editor, so CTest needs an interactive desktop session.
+        if(BUILD_TESTING)
+            add_test(NAME pluginval_${PV_NAME}
+                     COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+            set_tests_properties(pluginval_${PV_NAME} PROPERTIES TIMEOUT ${PLUGINVAL_TIMEOUT})
+        endif()
+    endforeach()
 endif()

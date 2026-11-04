@@ -3,6 +3,7 @@
 /build-*/
 /cmake-build-*/
 /out/
+/logs/
 
 # Visual Studio and MSBuild outputs
 .vs/
