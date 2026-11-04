@@ -22,6 +22,7 @@ DEALINGS IN THE SOFTWARE.
 #define WP_WAVEPLUGEDITOR_HPP
 
 #include "wpstdinclude.h"
+#include <atomic>
 
 #include "aeffguieditor.h"
 #include "waveplugparams.h"
@@ -58,6 +59,11 @@ private:
 	// The editor updates this effect instance when controls change.
 	WavePlug *wavePlug;
 	
+   	// setParameter() may be called on any host thread. It only records the value here;
+   	// idle() applies it to the VSTGUI controls on the UI thread.
+   	std::atomic<float> pendingValue[kNumAllParams];
+   	std::atomic<bool>  pendingDirty[kNumAllParams];
+
 	CColor displayBackColor, displayFontColor;
 	
 	CMovieBitmap *logo;
@@ -97,6 +103,7 @@ public:
 	
 private:
 	// Helpers create controls from the shared layout and bitmap resources.
+	void applyPendingParameters();
 	void initKnob(int tag, CBitmap *knobBitmap, CBitmap *handleBitmap, CBitmap *lockBitmap);
 	void initButton(int tag, CBitmap *buttonBitmap, CBitmap *lockBitmap);
 	void initLockButton(int tag, const int *pos, CBitmap *lockBitmap, int padW = 3, int padH = 3);

@@ -4,6 +4,8 @@
 
 This project contains GUI and no-GUI variants of the Lost Technology VST 2 plug-in. It uses the VST 2.4 API and the bundled VSTGUI source.
 
+The current plug-in version is **0.2.6**. CMake defines the version used by both plug-in builds, and the GUI displays the same version in its top bar.
+
 The supported build is CMake. The old MinGW makefile is retained under `legacy/` for historical reference and is not maintained. The checked-in CMake presets require CMake 3.20 or newer.
 
 ### Source layout

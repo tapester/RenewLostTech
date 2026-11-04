@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(LostTech)
+project(LostTech VERSION 0.2.6)
 
 # ---------------------------------------------------------------------------
 # Build the bundled VST 2.4 SDK and VSTGUI libraries before the plug-ins.
@@ -68,8 +68,13 @@ add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
 add_custom_target(LostTechDebug DEPENDS LostTech)
 
 # Apply common Windows compatibility and CRT settings to both plug-ins.
-target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
-target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
+set(PLUGIN_VERSION_DEFINITIONS
+    WP_MAJOR=${PROJECT_VERSION_MAJOR}
+    WP_MINOR=${PROJECT_VERSION_MINOR}
+    WP_UPDATE=${PROJECT_VERSION_PATCH}
+)
+target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX ${PLUGIN_VERSION_DEFINITIONS})
+target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX ${PLUGIN_VERSION_DEFINITIONS})
 
 # ---------------------------------------------------------------------------
 # Include paths shared by the plug-in source files.

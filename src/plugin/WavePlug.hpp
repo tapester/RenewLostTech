@@ -31,9 +31,15 @@ DEALINGS IN THE SOFTWARE.
 #include "Synthesizer.hpp"
 #include "waveplugparams.h"
 
+#ifndef WP_MAJOR
 #define WP_MAJOR 0
+#endif
+#ifndef WP_MINOR
 #define WP_MINOR 2
-#define WP_UPDATE 5
+#endif
+#ifndef WP_UPDATE
+#define WP_UPDATE 6
+#endif
 #define WP_VENDOR_VERSION ((long) (WP_MAJOR*10000 + WP_MINOR*100 + WP_UPDATE))
 #define WP_STRINGIFY(arg) #arg
 #define WP_VERSION_STRING(ma, mi, u) WP_STRINGIFY(ma) "." WP_STRINGIFY(mi) "." WP_STRINGIFY(u)

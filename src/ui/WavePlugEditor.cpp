@@ -228,6 +228,13 @@ lastTouchedParamIndex(-1), showHelp(false), paramTouched(false) {
 	// Clear parameter locks.
 	for (int i = 0; i < kNParamLocks; i++)
 		paramLocks[i] = false;
+
+	// NEW: clear the queue that setParameter() fills and idle() drains.
+	for (int i = 0; i < kNumAllParams; i++) {
+		pendingValue[i].store(0.0f);
+		pendingDirty[i].store(false);
+	}
+		
 }
 
 // Destructor.
@@ -427,6 +434,8 @@ void WavePlugEditor::close() {
 }
 
 void WavePlugEditor::idle() {
+	if (frame)
+        applyPendingParameters();   // new
 	AEffGUIEditor::idle();
 	if (!frame)
 		return;
@@ -458,6 +467,8 @@ void WavePlugEditor::idle() {
 	}
 }
 
+// Deprecated implementation of setParameter, retained for reference. The new implementation uses atomic variables to safely communicate parameter changes from the host thread to the GUI thread.
+/*
 void WavePlugEditor::setParameter(VstInt32 index, float value) {
 	if (!frame)
 		return;
@@ -475,6 +486,33 @@ void WavePlugEditor::setParameter(VstInt32 index, float value) {
 		
 		//postUpdate();
 	}
+}
+*/
+
+void WavePlugEditor::setParameter(VstInt32 index, float value) {
+    // Host threads land here: queue only, never touch VSTGUI objects.
+    if (index < 0 || index >= kNumAllParams)
+        return;
+    pendingValue[index].store(value, std::memory_order_relaxed);
+    pendingDirty[index].store(true, std::memory_order_release);
+}
+
+// New method, with the body that used to live in setParameter
+void WavePlugEditor::applyPendingParameters() {
+    for (int index = 0; index < kNumAllParams; index++) {
+        if (!pendingDirty[index].exchange(false, std::memory_order_acquire))
+            continue;
+        const float value = pendingValue[index].load(std::memory_order_relaxed);
+
+        if (index == kBufferSize) {
+            bufrMenu->setValue(7.0f*value + 0.5f);
+        }
+        else if (index >= kNumMonoParams) {
+            int stereoIndex = index - kNumMonoParams;
+            controls[stereoIndex]->setValue(value);
+            displays[stereoIndex]->setValue(value);
+        }
+    }
 }
 
 void WavePlugEditor::valueChanged(CControl* control) {
