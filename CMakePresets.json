@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-x64",
+      "displayName": "Windows x64",
+      "description": "Configure the plug-ins with the Visual Studio 2026 x64 generator.",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build-win64"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-x64-release",
+      "displayName": "Windows x64 Release plug-ins",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "targets": [
+        "LostTech",
+        "LostTechNoGUI"
+      ]
+    },
+    {
+      "name": "windows-x64-debug-gui",
+      "displayName": "Windows x64 Debug GUI plug-in",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "targets": [
+        "LostTechDebug"
+      ]
+    }
+  ]
+}

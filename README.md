@@ -4,7 +4,7 @@
 
 This project contains GUI and no-GUI variants of the Lost Technology VST 2 plug-in. It uses the VST 2.4 API and the bundled VSTGUI source.
 
-The supported build is CMake. The old MinGW makefile is retained under `legacy/` for historical reference and is not maintained.
+The supported build is CMake. The old MinGW makefile is retained under `legacy/` for historical reference and is not maintained. The checked-in CMake presets require CMake 3.20 or newer.
 
 ### Source layout
 
@@ -17,20 +17,20 @@ The supported build is CMake. The old MinGW makefile is retained under `legacy/`
 
 ### Building on Windows (64-bit)
 
-The VST 2.4 SDK and VSTGUI sources must be present in `dependencies/vstsdk2.4`. From an x64 Visual Studio developer shell with CMake available, run:
+The VST 2.4 SDK and VSTGUI sources must be present in `dependencies/vstsdk2.4`. From an x64 Visual Studio developer shell with CMake available, configure and build both plug-in variants with:
 
 ```powershell
-cmake -S . -B build-win64 -A x64
-cmake --build build-win64 --config Release
+cmake --preset windows-x64
+cmake --build --preset windows-x64-release
 ```
 
-To build the GUI plug-in with debug symbols and no optimization, use the Debug configuration:
+To build the GUI plug-in with debug symbols and no optimization, use:
 
 ```powershell
-cmake --build build-win64 --config Debug --target LostTechDebug
+cmake --build --preset windows-x64-debug-gui
 ```
 
-This writes `build-win64\Debug\LostTech.dll` with the Visual Studio generator. You can also build the ordinary `LostTech` target with `--config Debug`.
+This writes `build-win64\Debug\LostTech.dll` with the Visual Studio generator.
 
 The GUI plug-in is written to `build-win64\Release\LostTech.dll`; the alternative without a GUI is `build-win64\Release\LostTechNoGUI.dll`. These are 64-bit VST 2 plug-ins.
 
