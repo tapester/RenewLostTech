@@ -43,3 +43,28 @@ Run the focused DSP utility tests with:
 ```powershell
 ctest --test-dir build-win64 -C Release --output-on-failure
 ```
+
+### Testing on Windows (64-bit) using Pluginval
+
+Before testing, make sure that all builds are ready:
+
+```powershell
+cmake --build build-win64 --config Debug
+cmake --build build-win64 --config Release
+```
+
+Running them back to back. pluginval is a GUI-subsystem exe, so PowerShell returns to the prompt immediately, as it did in your last log. Piping to Out-Null makes PowerShell wait for it. Have pluginval write a log file for each run so nothing is lost:
+
+```powershell
+New-Item -ItemType Directory -Force logs | Out-Null
+foreach ($cfg in "Debug","Release") {
+  foreach ($dll in "LostTech","LostTechNoGUI") {
+    .\tools\pluginval\pluginval.exe --strictness-level 10 --repeat 3 --randomise `
+      --random-seed 0x44c4e05 --output-dir logs --output-filename "$cfg-$dll.txt" `
+      "build-win64\$cfg\$dll.dll" | Out-Null
+    "$cfg $dll -> exit code $LASTEXITCODE"
+  }
+}
+```
+
+An exit code of 0 means all tests passed and 1 means at least one failed. Check each log for lines starting with !!! to see which tests failed. I haven’t run this script, so check the log file names and that $LASTEXITCODE comes through on your setup.

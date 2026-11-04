@@ -77,7 +77,8 @@ int *BufferManager::newIntBuffer(int size) {
 	int *buffer = NULL;
 	
 	try {
-		buffer = new int[size];
+		// newIntBuffer:
+		buffer = new int[size]();      // was: new int[size]
 	}
 	catch (std::bad_alloc e) {
 		return NULL;
@@ -96,7 +97,8 @@ float *BufferManager::newFloatBuffer(int size) {
 	float *buffer = NULL;
 	
 	try {
-		buffer = new float[size];
+		// newFloatBuffer:
+		buffer = new float[size]();    // was: new float[size]
 	}
 	catch (std::bad_alloc e) {
 		return NULL;

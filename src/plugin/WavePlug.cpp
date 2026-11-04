@@ -31,6 +31,24 @@ DEALINGS IN THE SOFTWARE.
 #include "WavePlugEditor.hpp"
 #endif
 
+// Debugging: trap floating-point exceptions on MSVC debug builds. This is a no-op on other compilers and build configurations.
+#include <float.h>
+#if defined(_DEBUG) && defined(_MSC_VER)
+   struct FpTrap {
+       unsigned prev, cur;
+       FpTrap()  { _controlfp_s(&prev, 0, 0);
+                   _controlfp_s(&cur, 0, _EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW); }
+       ~FpTrap() { _clearfp(); _controlfp_s(&cur, prev, _MCW_EM); }
+   };   
+#endif
+
+#include <xmmintrin.h>
+struct ScopedFtz {
+    unsigned prev;
+    ScopedFtz() : prev(_mm_getcsr()) { _mm_setcsr(prev | 0x8040); }  // FTZ | DAZ
+    ~ScopedFtz() { _mm_setcsr(prev); }
+};
+
 // Convert the host's normalized [0,1] parameter values into DSP-domain settings.
 #define BUFFER_SIZE_T(v) (1 << (int) (7.0f*(v) + 0.5f))
 
@@ -528,6 +546,13 @@ void WavePlug::resume() { // SYNCHRONIZED
 }*/
 
 void WavePlug::processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames) {
+	// NOTE: The VST SDK documentation states that the processReplacing method is called
+	// with the denormalized flush-to-zero mode enabled. However, some hosts (e.g., Reaper) do not enable this mode, so we enable it here to be safe.
+	#if defined(_DEBUG) && defined(_MSC_VER)
+		FpTrap fpTrap;      // Debug only: stop at the first invalid floating-point operation
+	#endif
+	ScopedFtz ftz;      // flush denormals to zero while processing
+
 	doThreadSynchronizedDataExchange();
 	
 	(this->*procRHandler)(
