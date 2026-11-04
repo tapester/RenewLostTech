@@ -25,3 +25,4 @@ ipch/
 # Editor and operating-system metadata
 .DS_Store
 Thumbs.db
+/RenewLostTech.code-workspace

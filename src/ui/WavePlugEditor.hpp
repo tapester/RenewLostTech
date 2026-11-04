@@ -85,6 +85,7 @@ private:
 	
 public:
 	WavePlugEditor(AudioEffect *effect);
+	virtual ~WavePlugEditor();
 	
 	// VST host lifecycle and parameter synchronization callbacks.
 	virtual bool open(void *ptr) override;

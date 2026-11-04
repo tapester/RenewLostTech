@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 project(LostTech)
 
+# ---------------------------------------------------------------------------
 # Build the bundled VST 2.4 SDK and VSTGUI libraries before the plug-ins.
+# ---------------------------------------------------------------------------
 add_subdirectory(dependencies/vstsdk2.4/public.sdk)
 add_subdirectory(dependencies/vstsdk2.4/vstgui.sf)
 
+# ---------------------------------------------------------------------------
 # DSP implementation shared by the GUI and no-GUI plug-ins.
+# ---------------------------------------------------------------------------
 set(DSP_SOURCE_FILES
         src/dsp/Analyzer.cpp
         src/dsp/Analyzer.hpp
@@ -19,7 +23,9 @@ set(DSP_SOURCE_FILES
         src/dsp/wpmodulators.hpp
         )
 
+# ---------------------------------------------------------------------------
 # Common plug-in headers and parameter definitions.
+# ---------------------------------------------------------------------------
 set(PLUGIN_COMMON_FILES
         src/common/wpstdinclude.h
         src/plugin/WavePlug.hpp
@@ -27,7 +33,9 @@ set(PLUGIN_COMMON_FILES
         src/plugin/waveplugparams.h
         )
 
+# ---------------------------------------------------------------------------
 # GUI plug-in sources, including the VSTGUI editor and Windows resources.
+# ---------------------------------------------------------------------------
 set(GUI_SOURCE_FILES
         ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
@@ -38,7 +46,9 @@ set(GUI_SOURCE_FILES
         src/ui/WavePlugResource.rc
         )
 
+# ---------------------------------------------------------------------------
 # The no-GUI variant reuses WavePlug.cpp through a wrapper that defines WP_NO_GUI.
+# ---------------------------------------------------------------------------
 set(NOGUI_SOURCE_FILES
         ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
@@ -46,18 +56,24 @@ set(NOGUI_SOURCE_FILES
         src/plugin/WavePlugNoGUI.cpp
         )
 
+# ---------------------------------------------------------------------------
 # Build both plug-in variants as shared libraries.
+# ---------------------------------------------------------------------------
 add_library(LostTech SHARED ${GUI_SOURCE_FILES} LostTech.def)
 add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
 
+# ---------------------------------------------------------------------------
 # Convenience target used with the Debug configuration to build the GUI plug-in.
+# ---------------------------------------------------------------------------
 add_custom_target(LostTechDebug DEPENDS LostTech)
 
 # Apply common Windows compatibility and CRT settings to both plug-ins.
 target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
 
+# ---------------------------------------------------------------------------
 # Include paths shared by the plug-in source files.
+# ---------------------------------------------------------------------------
 set(PLUGIN_INCLUDE_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}
         src/common
@@ -68,7 +84,9 @@ set(PLUGIN_INCLUDE_DIRS
 target_include_directories(LostTech PRIVATE ${PLUGIN_INCLUDE_DIRS})
 target_include_directories(LostTechNoGUI PRIVATE ${PLUGIN_INCLUDE_DIRS})
 
+# ---------------------------------------------------------------------------
 # Link each variant to the SDK libraries it uses.
+# ---------------------------------------------------------------------------
 target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
 target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
 
@@ -79,17 +97,54 @@ if(WIN32)
     target_link_libraries(LostTech PRIVATE gdi32 ole32 comdlg32 uuid)
 endif()
 
+# ---------------------------------------------------------------------------
 # Keep exported symbols hidden and emit the plug-in DLL names without a lib prefix.
+# ---------------------------------------------------------------------------
 SET_TARGET_PROPERTIES(LostTech PROPERTIES CXX_VISIBILITY_PRESET hidden)
 SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 SET_TARGET_PROPERTIES(LostTech PROPERTIES PREFIX "")
 SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES PREFIX "")
 
+# ---------------------------------------------------------------------------
 # Register focused DSP tests when CTest support is enabled.
+# ---------------------------------------------------------------------------
 include(CTest)
 if(BUILD_TESTING)
     add_executable(wpfunc_tests tests/dsp/wpfunc_tests.cpp src/dsp/wpfunc.cpp)
     target_include_directories(wpfunc_tests PRIVATE src/dsp)
     add_test(NAME wpfunc_tests COMMAND wpfunc_tests)
+endif()
+
+# ---------------------------------------------------------------------------
+# pluginval (local validation / debugging). Optional: only active if the exe exists.
+# ---------------------------------------------------------------------------
+set(PLUGINVAL_EXE "${CMAKE_CURRENT_SOURCE_DIR}/tools/pluginval/pluginval.exe"
+    CACHE FILEPATH "Path to pluginval.exe")
+set(PLUGINVAL_STRICTNESS 6 CACHE STRING "pluginval strictness level (1-10)")
+
+if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
+    set(PLUGINVAL_ARGS --strictness-level ${PLUGINVAL_STRICTNESS} --verbose)
+
+    # F5 in Visual Studio on the LostTech project launches pluginval with the DLL loaded,
+    # so the debugger stops on the crash with LostTech.pdb available.
+    # (Only honoured by the Visual Studio generators.)
+    string(REPLACE ";" " " PLUGINVAL_ARGS_STR "${PLUGINVAL_ARGS}")
+    set_target_properties(LostTech PROPERTIES
+        VS_DEBUGGER_COMMAND           "${PLUGINVAL_EXE}"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} \"$<TARGET_FILE:LostTech>\""
+        VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:LostTech>")
+
+    # Command-line run: cmake --build build-win64 --config Debug --target validate_losttech
+    add_custom_target(validate_losttech
+        COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:LostTech>"
+        DEPENDS LostTech
+        USES_TERMINAL
+        COMMENT "Validating LostTech with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
+    # Also runnable through the existing CTest setup (needs a desktop session: it opens the editor).
+    if(BUILD_TESTING)
+        add_test(NAME pluginval_losttech
+                 COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:LostTech>")
+    endif()
 endif()

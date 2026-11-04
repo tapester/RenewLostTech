@@ -218,6 +218,9 @@ WavePlugEditor::WavePlugEditor(AudioEffect *effect) :
 AEffGUIEditor(effect), wavePlug((WavePlug *) effect),
 componentLocks(paramLocks + kNumParams), globalLock(paramLocks + kNParamLocks - 1),
 lastTouchedParamIndex(-1), showHelp(false), paramTouched(false) {
+	#if GDIPLUS
+    	VSTGUI::GDIPlusGlobals::enter();   // hold GDI+ open until this editor object dies
+	#endif
 	rect.left = 0; rect.top = 0; rect.right = 512; rect.bottom = 488;
 	displayBackColor(235, 235, 235, 0);
 	displayFontColor(0, 0, 0, 0);
@@ -227,6 +230,14 @@ lastTouchedParamIndex(-1), showHelp(false), paramTouched(false) {
 		paramLocks[i] = false;
 }
 
+// Destructor.
+WavePlugEditor::~WavePlugEditor() {
+    if (frame)          // host never called close(): release the frame while GDI+ is still alive
+        close();
+#if GDIPLUS
+    VSTGUI::GDIPlusGlobals::exit();
+#endif
+}
 
 // Inherited virtual public methods.
 bool WavePlugEditor::open(void *ptr) {
