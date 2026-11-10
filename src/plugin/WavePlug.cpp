@@ -44,12 +44,28 @@ DEALINGS IN THE SOFTWARE.
 #endif
 */
 
+// Flush denormals to zero while processing audio. The control register is
+// architecture specific: MXCSR on x86, FPCR on arm64 (Apple Silicon).
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
 #include <xmmintrin.h>
 struct ScopedFtz {
     unsigned prev;
     ScopedFtz() : prev(_mm_getcsr()) { _mm_setcsr(prev | 0x8040); }  // FTZ | DAZ
     ~ScopedFtz() { _mm_setcsr(prev); }
 };
+#elif defined(__aarch64__)
+struct ScopedFtz {
+    unsigned long long prev;
+    ScopedFtz() {
+        asm volatile("mrs %0, fpcr" : "=r"(prev));
+        unsigned long long cur = prev | (1ULL << 24);  // FZ: flush inputs and outputs
+        asm volatile("msr fpcr, %0" : : "r"(cur));
+    }
+    ~ScopedFtz() { asm volatile("msr fpcr, %0" : : "r"(prev)); }
+};
+#else
+struct ScopedFtz {};  // No denormal control available on this architecture.
+#endif
 
 // Convert the host's normalized [0,1] parameter values into DSP-domain settings.
 #define BUFFER_SIZE_T(v) (1 << (int) (7.0f*(v) + 0.5f))
