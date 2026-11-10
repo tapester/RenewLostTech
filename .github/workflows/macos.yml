@@ -33,6 +33,8 @@ jobs:
           echo "path=$BUNDLE" >> "$GITHUB_OUTPUT"
           lipo -info "$BUNDLE/Contents/MacOS/LostTechNoGUI"
           plutil -lint "$BUNDLE/Contents/Info.plist"
+          echo "--- Info.plist"; cat "$BUNDLE/Contents/Info.plist"
+          echo "--- bundle tree"; find "$BUNDLE" -exec ls -ld {} \;
 
       # Apple Silicon refuses unsigned code; ad-hoc signing is enough for local use.
       # Distribution to other machines needs a Developer ID signature and notarization.
@@ -41,15 +43,27 @@ jobs:
           codesign --force --deep --sign - "${{ steps.bundle.outputs.path }}"
           codesign --verify --deep --strict --verbose=2 "${{ steps.bundle.outputs.path }}"
 
-      - name: Package
+      # Set Finder's "bundle" flag so the .vst folder is shown and treated as a
+      # package. This is done after signing because it must not change the signature.
+      - name: Mark as bundle and package
         run: |
-          mkdir -p dist
-          ditto -c -k --keepParent "${{ steps.bundle.outputs.path }}" dist/LostTechNoGUI-macos.zip
+          BUNDLE="${{ steps.bundle.outputs.path }}"
+          SetFile -a B "$BUNDLE"
+          echo "--- Finder flags / attributes"; xattr -l "$BUNDLE" || true
+          mkdir -p dist stage
+          ditto "$BUNDLE" stage/LostTechNoGUI.vst
+          SetFile -a B stage/LostTechNoGUI.vst
+          # A DMG keeps the bundle flag and all metadata intact; the ZIP is a fallback.
+          hdiutil create -volname LostTechNoGUI -srcfolder stage -ov -format UDZO dist/LostTechNoGUI-macos.dmg
+          ditto -c -k --sequesterRsrc --keepParent stage/LostTechNoGUI.vst dist/LostTechNoGUI-macos.zip
+          ls -la dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: LostTechNoGUI-macos
-          path: dist/LostTechNoGUI-macos.zip
+          path: |
+            dist/LostTechNoGUI-macos.dmg
+            dist/LostTechNoGUI-macos.zip
 
       # Optional: needs a pluginval build that can load VST 2 plug-ins.
       - name: Validate with pluginval
