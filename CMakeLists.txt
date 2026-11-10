@@ -4,8 +4,16 @@ project(LostTech VERSION 0.2.6)
 # ---------------------------------------------------------------------------
 # Build the bundled VST 2.4 SDK and VSTGUI libraries before the plug-ins.
 # ---------------------------------------------------------------------------
+# Static libraries linked into the plug-in must be position independent.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(dependencies/vstsdk2.4/public.sdk)
-add_subdirectory(dependencies/vstsdk2.4/vstgui.sf)
+
+# The GUI plug-in is Windows-only: VSTGUI 3.5 relies on Carbon on macOS, which does
+# not exist on arm64. On other platforms only the no-GUI variant is built.
+if(WIN32)
+    add_subdirectory(dependencies/vstsdk2.4/vstgui.sf)
+endif()
 
 # ---------------------------------------------------------------------------
 # DSP implementation shared by the GUI and no-GUI plug-ins.
@@ -59,13 +67,28 @@ set(NOGUI_SOURCE_FILES
 # ---------------------------------------------------------------------------
 # Build both plug-in variants as shared libraries.
 # ---------------------------------------------------------------------------
-add_library(LostTech SHARED ${GUI_SOURCE_FILES} LostTech.def)
-add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
+if(WIN32)
+    add_library(LostTech SHARED ${GUI_SOURCE_FILES} LostTech.def)
+    add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES} LostTech.def)
+elseif(APPLE)
+    # VST 2 on macOS is a bundle (.vst) containing a loadable module.
+    add_library(LostTechNoGUI MODULE ${NOGUI_SOURCE_FILES})
+else()
+    add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES})
+endif()
 
 # ---------------------------------------------------------------------------
 # Convenience target used with the Debug configuration to build the GUI plug-in.
 # ---------------------------------------------------------------------------
-add_custom_target(LostTechDebug DEPENDS LostTech)
+if(TARGET LostTech)
+    add_custom_target(LostTechDebug DEPENDS LostTech)
+endif()
+
+# Plug-in targets that exist on this platform.
+set(PLUGIN_TARGETS LostTechNoGUI)
+if(TARGET LostTech)
+    list(APPEND PLUGIN_TARGETS LostTech)
+endif()
 
 # Apply common Windows compatibility and CRT settings to both plug-ins.
 set(PLUGIN_VERSION_DEFINITIONS
@@ -73,8 +96,12 @@ set(PLUGIN_VERSION_DEFINITIONS
     WP_MINOR=${PROJECT_VERSION_MINOR}
     WP_UPDATE=${PROJECT_VERSION_PATCH}
 )
-target_compile_definitions(LostTech PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX ${PLUGIN_VERSION_DEFINITIONS})
-target_compile_definitions(LostTechNoGUI PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX ${PLUGIN_VERSION_DEFINITIONS})
+foreach(PLUGIN_TARGET ${PLUGIN_TARGETS})
+    target_compile_definitions(${PLUGIN_TARGET} PUBLIC ${PLUGIN_VERSION_DEFINITIONS})
+    if(WIN32)
+        target_compile_definitions(${PLUGIN_TARGET} PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
+    endif()
+endforeach()
 
 # ---------------------------------------------------------------------------
 # Include paths shared by the plug-in source files.
@@ -86,13 +113,16 @@ set(PLUGIN_INCLUDE_DIRS
         src/plugin
         src/ui
         )
-target_include_directories(LostTech PRIVATE ${PLUGIN_INCLUDE_DIRS})
-target_include_directories(LostTechNoGUI PRIVATE ${PLUGIN_INCLUDE_DIRS})
+foreach(PLUGIN_TARGET ${PLUGIN_TARGETS})
+    target_include_directories(${PLUGIN_TARGET} PRIVATE ${PLUGIN_INCLUDE_DIRS})
+endforeach()
 
 # ---------------------------------------------------------------------------
 # Link each variant to the SDK libraries it uses.
 # ---------------------------------------------------------------------------
-target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
+if(TARGET LostTech)
+    target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
+endif()
 target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
 
 if(WIN32)
@@ -105,11 +135,24 @@ endif()
 # ---------------------------------------------------------------------------
 # Keep exported symbols hidden and emit the plug-in DLL names without a lib prefix.
 # ---------------------------------------------------------------------------
-SET_TARGET_PROPERTIES(LostTech PROPERTIES CXX_VISIBILITY_PRESET hidden)
-SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES CXX_VISIBILITY_PRESET hidden)
+foreach(PLUGIN_TARGET ${PLUGIN_TARGETS})
+    set_target_properties(${PLUGIN_TARGET} PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+        PREFIX "")
+endforeach()
 
-SET_TARGET_PROPERTIES(LostTech PROPERTIES PREFIX "")
-SET_TARGET_PROPERTIES(LostTechNoGUI PROPERTIES PREFIX "")
+if(APPLE)
+    # Configure with -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" for a universal binary.
+    set_target_properties(LostTechNoGUI PROPERTIES
+        BUNDLE TRUE
+        BUNDLE_EXTENSION vst
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/macos/Info.plist.in"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.losttechnology.losttechnogui"
+        MACOSX_BUNDLE_BUNDLE_NAME "LostTechNoGUI"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
+endif()
 
 # ---------------------------------------------------------------------------
 # Register focused DSP tests when CTest support is enabled.

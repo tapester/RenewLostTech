@@ -22,10 +22,22 @@ DEALINGS IN THE SOFTWARE.
 
 #include <new>
 #include <stdexcept>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include "WavePlug.hpp"
 
+// Symbols are hidden by default (CXX_VISIBILITY_PRESET hidden), so the VST entry
+// points need explicit export on non-Windows platforms. On Windows the exports
+// come from LostTech.def.
+#ifdef _WIN32
+#define WP_EXPORT
+#else
+#define WP_EXPORT __attribute__((visibility("default")))
+#endif
+
 void *hInstance;
+#ifdef _WIN32
 /*
 	NOTE: This won't be called properly at load time without the 'extern "C"' bit specifying C linkage.
 	It seems like GCC (like other compilers) mangles the names of C++ functions to encode stuff
@@ -36,8 +48,9 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInst, DWORD dwReason, LPVOID lpvReserv
 	hInstance = hInst;
 	return 1;
 }
+#endif
 
-extern "C" AEffect *VSTPluginMain(audioMasterCallback audioMaster) {
+extern "C" WP_EXPORT AEffect *VSTPluginMain(audioMasterCallback audioMaster) {
 	// Check VST version.
 	if (!audioMaster(NULL, audioMasterVersion, 0, 0, NULL, 0))
 		return NULL;  // Old version.
@@ -67,3 +80,10 @@ extern "C" AEffect *VSTPluginMain(audioMasterCallback audioMaster) {
 	
 	return plug->getAeffect();
 }
+
+#ifdef __APPLE__
+// Older macOS VST 2 hosts look for main_macho instead of VSTPluginMain.
+extern "C" WP_EXPORT AEffect *main_macho(audioMasterCallback audioMaster) {
+	return VSTPluginMain(audioMaster);
+}
+#endif

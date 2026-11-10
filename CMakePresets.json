@@ -23,7 +23,8 @@
       "configuration": "Release",
       "targets": [
         "LostTech",
-        "LostTechNoGUI"
+        "LostTechNoGUI",
+        "wpfunc_tests"
       ]
     },
     {

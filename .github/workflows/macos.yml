@@ -1,0 +1,62 @@
+name: macOS build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  macos:
+    # macos-latest is Apple Silicon (arm64).
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (universal binary arm64 + x86_64)
+        run: |
+          cmake -S . -B build-macos \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      - name: Build plug-in and tests
+        run: cmake --build build-macos --config Release --parallel
+
+      - name: Run DSP tests
+        run: ctest --test-dir build-macos -C Release --output-on-failure
+
+      - name: Locate bundle
+        id: bundle
+        run: |
+          BUNDLE=$(find build-macos -name 'LostTechNoGUI.vst' -maxdepth 3 | head -n 1)
+          test -n "$BUNDLE"
+          echo "path=$BUNDLE" >> "$GITHUB_OUTPUT"
+          lipo -info "$BUNDLE/Contents/MacOS/LostTechNoGUI"
+          plutil -lint "$BUNDLE/Contents/Info.plist"
+
+      # Apple Silicon refuses unsigned code; ad-hoc signing is enough for local use.
+      # Distribution to other machines needs a Developer ID signature and notarization.
+      - name: Ad-hoc code sign
+        run: |
+          codesign --force --deep --sign - "${{ steps.bundle.outputs.path }}"
+          codesign --verify --deep --strict --verbose=2 "${{ steps.bundle.outputs.path }}"
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent "${{ steps.bundle.outputs.path }}" dist/LostTechNoGUI-macos.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LostTechNoGUI-macos
+          path: dist/LostTechNoGUI-macos.zip
+
+      # Optional: needs a pluginval build that can load VST 2 plug-ins.
+      - name: Validate with pluginval
+        continue-on-error: true
+        run: |
+          curl -sSL -o pluginval.zip \
+            https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pluginval.zip
+          ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --repeat 3 \
+            --validate-in-process "${{ steps.bundle.outputs.path }}"

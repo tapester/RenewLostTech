@@ -23,7 +23,9 @@ DEALINGS IN THE SOFTWARE.
 
 #include "wpstdinclude.h"
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include "audioeffectx.h"
 #include "BufferManager.hpp"
 #include "Analyzer.hpp"
