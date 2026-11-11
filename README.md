@@ -2,7 +2,7 @@
 
 Lost Technology is a VST 2.4 audio plug-in with GUI and no-GUI builds. It uses the bundled Steinberg VST 2.4 SDK and VSTGUI sources in `dependencies/vstsdk2.4/`.
 
-The current plug-in version is **0.2.6**. CMake is the supported build system; the legacy MinGW makefile is retained for reference and is not maintained.
+The current plug-in version is **0.2.6**. CMake 4.2 or newer is required; CMake is the supported build system, while the legacy MinGW makefile is retained for reference and is not maintained.
 
 ## Platform support
 
@@ -49,14 +49,11 @@ This produces `build-win64\Debug\LostTech.dll`.
 
 Only the no-GUI plug-in is built on macOS. It is produced as a `LostTechNoGUI.vst` bundle containing a universal binary (arm64 and x86_64), with the entry points `VSTPluginMain` and `main_macho`.
 
-Requirements: CMake 3.10 or newer and Xcode command line tools. On a Mac:
+Requirements: CMake 4.2 or newer and Xcode command line tools. On a Mac:
 
 ```bash
-cmake -S . -B build-macos \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-cmake --build build-macos --parallel
+cmake --preset macos-universal
+cmake --build --preset macos-universal-release --parallel
 ctest --test-dir build-macos --output-on-failure
 ```
 

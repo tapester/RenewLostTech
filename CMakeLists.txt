@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 4.2)
 project(LostTech VERSION 0.2.6)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ---------------------------------------------------------------------------
 # Build the bundled VST 2.4 SDK and VSTGUI libraries before the plug-ins.
@@ -99,7 +103,11 @@ set(PLUGIN_VERSION_DEFINITIONS
 foreach(PLUGIN_TARGET ${PLUGIN_TARGETS})
     target_compile_definitions(${PLUGIN_TARGET} PUBLIC ${PLUGIN_VERSION_DEFINITIONS})
     if(WIN32)
-        target_compile_definitions(${PLUGIN_TARGET} PUBLIC _CRT_SECURE_NO_WARNINGS NOMINMAX)
+        target_compile_definitions(${PLUGIN_TARGET} PUBLIC
+            _CRT_SECURE_NO_WARNINGS
+            NOMINMAX
+            WINVER=0x0601
+            _WIN32_WINNT=0x0601)
     endif()
 endforeach()
 
@@ -126,9 +134,7 @@ endif()
 target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
 
 if(WIN32)
-    # Match VSTGUI's minimum Windows API and link GUI system libraries.
-    target_compile_definitions(LostTech PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
-    target_compile_definitions(LostTechNoGUI PRIVATE WINVER=0x0501 _WIN32_WINNT=0x0501)
+    # Link GUI system libraries.
     target_link_libraries(LostTech PRIVATE gdi32 ole32 comdlg32 uuid)
 endif()
 
