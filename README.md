@@ -2,7 +2,7 @@
 
 Lost Technology is a VST 2.4 audio plug-in with GUI and no-GUI builds. It uses the bundled Steinberg VST 2.4 SDK and VSTGUI sources in `dependencies/vstsdk2.4/`.
 
-The current plug-in version is **0.2.6**. CMake 4.2 or newer is required; CMake is the supported build system, while the legacy MinGW makefile is retained for reference and is not maintained.
+The current plug-in version is **0.2.6**. CMake 4.2 or newer is required; CMake is the supported build system.
 
 ## Platform support
 

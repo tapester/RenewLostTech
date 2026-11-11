@@ -10,12 +10,41 @@ The sources under `dependencies/vstsdk2.4/vstgui.sf/vstgui/` identify themselves
 
 The bundled source tree does not record an upstream commit or package checksum. Keep its original notices intact and record the precise source and license if replacing or refreshing this legacy dependency.
 
+//-----------------------------------------------------------------------------
+// VSTGUI LICENSE
+// Copyright 2008, Steinberg Media Technologies, All Rights Reserved
+//-----------------------------------------------------------------------------
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+// 
+//   * Redistributions of source code must retain the above copyright notice, 
+//     this list of conditions and the following disclaimer.
+//   * Redistributions in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation 
+//     and/or other materials provided with the distribution.
+//   * Neither the name of the Steinberg Media Technologies nor the names of its
+//     contributors may be used to endorse or promote products derived from this 
+//     software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A  PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
+// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE  OF THIS SOFTWARE, EVEN IF ADVISED
+// OF THE POSSIBILITY OF SUCH DAMAGE.
+//-----------------------------------------------------------------------------
+
 ## pluginval (development tool, not part of the plug-in)
 
 pluginval is Tracktion's plug-in validation tool. It is used only to validate the built `LostTech.dll` and `LostTechNoGUI.dll`, from the command line, from the Visual Studio debugger (F5 on the `LostTech` project), and through the `pluginval_*` CTest entries defined in `CMakeLists.txt`.
 
 - Upstream: <https://github.com/Tracktion/pluginval>, released under the GNU General Public License v3 (GPLv3), according to its README.
 - Binaries: download a release build from <https://github.com/Tracktion/pluginval/releases>. The project's README states the pre-compiled releases include VST2 testing support. Place `pluginval.exe` at `tools/pluginval/pluginval.exe`, or point CMake at another location with `-DPLUGINVAL_EXE=<path>`.
-- Version used: record the output of `.\tools\pluginval\pluginval.exe --version` here when updating the tool.
+- Version used: record the output of `.\tools\pluginval\pluginval.exe --version` here when updating the tool. 
+- Current version as of 11-NOV-2026: pluginval - 1.0.4
 - Scope: pluginval runs as a separate process, is not linked into the plug-in, and is not shipped with it. `/tools/pluginval/` is listed in `.gitignore`, so the binary is not meant to be committed.
 - If a pluginval binary is ever redistributed (for example attached to a release), the GPLv3 terms apply to that distribution: include the license text and make the corresponding source available, for example by referencing the exact upstream release.

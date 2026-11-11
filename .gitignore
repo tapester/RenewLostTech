@@ -28,5 +28,9 @@ ipch/
 Thumbs.db
 /RenewLostTech.code-workspace
 
+# Dependency headers
+/dependencies/vstsdk2.4/public.sdk/source/vst2.x/aeffect.h
+/dependencies/vstsdk2.4/public.sdk/source/vst2.x/aeffectx.h
+
 # Prevent commit of pluginval binary
 /tools/pluginval/
