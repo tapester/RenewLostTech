@@ -7,7 +7,10 @@ on:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    # Keep this pinned to the image that provides the VS 2022 generator.
+    # windows-latest can move to a newer Windows image before its Visual Studio
+    # installation is available to CMake's generator discovery.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -15,6 +18,11 @@ jobs:
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: 4.2.0
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Configure x64 Release build
         run: cmake -S . -B build-windows -G "Visual Studio 17 2022" -A x64
