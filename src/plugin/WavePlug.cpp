@@ -99,8 +99,8 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
 #define M_LN2 0.69314718055994530942
 
 // Macro for standard processing method.
-#define PROC_METHOD(ioStatements) \
-(float *in0, float *in1, float *out0, float *out1, int sampleFrames) { \
+#define PROC_METHOD(name, ioStatements) \
+void WavePlug::name(float *in0, float *in1, float *out0, float *out1, int sampleFrames) { \
 	while (--sampleFrames >= 0) { \
 		{ioStatements} \
 		syn1.tick(); syn2.tick(); \
@@ -834,89 +834,89 @@ void WavePlug::setProcHandlers() {
 	procRHandler = procRHandlers[handlerIndex];
 }
 
-void WavePlug::proc1In1Out PROC_METHOD(
+PROC_METHOD(proc1In1Out,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0++);
 	*out0++ += modO1.getValue();)
 
-void WavePlug::proc1In1OutB PROC_METHOD(
+PROC_METHOD(proc1In1OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0);
 	*out0++ += *in0++;)
 
-void WavePlug::proc1In2Out PROC_METHOD(
+PROC_METHOD(proc1In2Out,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0++);
 	*out0++ += modO1.getValue();
 	*out1++ += modO2.getValue();)
 
-void WavePlug::proc1In2OutB PROC_METHOD(
+PROC_METHOD(proc1In2OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0);
 	*out0++ += *in0;
 	*out1++ += *in0++;)
 
-void WavePlug::proc2In1Out PROC_METHOD(
+PROC_METHOD(proc2In1Out,
 	ana1.addSample(*in0++);
 	ana2.addSample(*in1++);
 	*out0++ += modO1.getValue();)
 
-void WavePlug::proc2In1OutB PROC_METHOD(
+PROC_METHOD(proc2In1OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in1++);
 	*out0++ += *in0++;)
 
-void WavePlug::proc2In2Out PROC_METHOD(
+PROC_METHOD(proc2In2Out,
 	ana1.addSample(*in0++);
 	ana2.addSample(*in1++);
 	*out0++ += modO1.getValue();
 	*out1++ += modO2.getValue();)
 
-void WavePlug::proc2In2OutB PROC_METHOD(
+PROC_METHOD(proc2In2OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in1);
 	*out0++ += *in0++;
 	*out1++ += *in1++;)
 
-void WavePlug::procR1In1Out PROC_METHOD(
+PROC_METHOD(procR1In1Out,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0++);
 	*out0++ = modO1.getValue();)
 
-void WavePlug::procR1In1OutB PROC_METHOD(
+PROC_METHOD(procR1In1OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0);
 	*out0++ = *in0++;)
 
-void WavePlug::procR1In2Out PROC_METHOD(
+PROC_METHOD(procR1In2Out,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0++);
 	*out0++ = modO1.getValue();
 	*out1++ = modO2.getValue();)
 
-void WavePlug::procR1In2OutB PROC_METHOD(
+PROC_METHOD(procR1In2OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in0);
 	*out0++ = *in0;
 	*out1++ = *in0++;)
 
-void WavePlug::procR2In1Out PROC_METHOD(
+PROC_METHOD(procR2In1Out,
 	ana1.addSample(*in0++);
 	ana2.addSample(*in1++);
 	*out0++ = modO1.getValue();)
 
-void WavePlug::procR2In1OutB PROC_METHOD(
+PROC_METHOD(procR2In1OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in1++);
 	*out0++ = *in0++;)
 
-void WavePlug::procR2In2Out PROC_METHOD(
+PROC_METHOD(procR2In2Out,
 	ana1.addSample(*in0++);
 	ana2.addSample(*in1++);
 	*out0++ = modO1.getValue();
 	*out1++ = modO2.getValue();)
 
-void WavePlug::procR2In2OutB PROC_METHOD(
+PROC_METHOD(procR2In2OutB,
 	ana1.addSample(*in0);
 	ana2.addSample(*in1);
 	*out0++ = *in0++;
