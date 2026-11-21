@@ -622,6 +622,11 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 	
 	if (!std::isnan(processingData.newSampleRate)) {
 		float oldSampleRate = globalSampleRate;
+
+		for (int index = 0; index < kNumAllParams; index++) {
+			if (std::isnan(processingData.newParamValues[index]))
+				processingData.newParamValues[index] = processingData.paramValues[index];
+		}
 		
 		setGlobalSampleRate(processingData.newSampleRate);
 		
