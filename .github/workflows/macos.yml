@@ -65,12 +65,18 @@ jobs:
             dist/LostTechNoGUI-macos.dmg
             dist/LostTechNoGUI-macos.zip
 
-      # Optional: needs a pluginval build that can load VST 2 plug-ins.
-      - name: Validate with pluginval
-        continue-on-error: true
+      # Validate with pluginval (fixed version with checksum)
+      - name: Download and validate pluginval
         run: |
           curl -sSL -o pluginval.zip \
-            https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+            https://github.com/Tracktion/pluginval/releases/download/v1.0.0/pluginval_macOS.zip
           unzip -q pluginval.zip
+          sha256sum pluginval.app > pluginval.sha256
+          echo "pluginval checksum: $(cat pluginval.sha256)"
+          ./pluginval.app/Contents/MacOS/pluginval --version
+
+      - name: Validate plug-in with pluginval
+        run: |
+          BUNDLE="${{ steps.bundle.outputs.path }}"
           ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --repeat 3 \
-            --validate-in-process "${{ steps.bundle.outputs.path }}"
+            --validate-in-process "$BUNDLE"

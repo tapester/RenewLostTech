@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.20)
 project(LostTech VERSION 0.2.6)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -206,10 +206,8 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
         string(TOLOWER ${PV_TARGET} PV_NAME)
 
         add_custom_target(validate_${PV_NAME}
-            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>"
-            DEPENDS ${PV_TARGET}
-            USES_TERMINAL
-            COMMENT "Validating ${PV_TARGET} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
 
         # The GUI variant opens its editor, so CTest needs an interactive desktop session.
         if(BUILD_TESTING)
