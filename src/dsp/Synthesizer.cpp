@@ -27,12 +27,9 @@ DEALINGS IN THE SOFTWARE.
 #define WINDOWINDEX(x) (((x) + windowPositionsSize) % windowPositionsSize)
 
 void Synthesizer::initialize(
-	BufferManager *bMan,
 	UnsignedModulator *inputA, UnsignedModulator *inputF, FunctionModulator *inputW,
 	int bufferSize)
 {
-	bufferManager = bMan;
-	
 	audioFunc.setValue(NULL);
 	
 	inA = inputA;
@@ -43,9 +40,9 @@ void Synthesizer::initialize(
 	fOffset = 0.0f;
 	fGain = 1.0f;
 	samplesSize = 0;
-	samples = NULL;
-	windowPositions = NULL;
-	fadeBuffer = NULL;
+	// shortcut: 2048 floats cover the 250-sample max smoothing window up to ~360 kHz, so moving the
+	// Smoothing knob never allocates on the audio thread; above that rate it allocates once.
+	fadeBuffer.reserve(2048);
 	aValue = 0.0f;
 	fValue = 0.0f;
 	
@@ -55,13 +52,13 @@ void Synthesizer::initialize(
 }
 
 void Synthesizer::reset() {
-	if (samples == NULL)
+	if (samples.empty())
 		return;
 	
 	start = last = 0;
 	end = 1;
 	samples[0] = 0.0f;
-	audioFunc.setValue(samples);
+	audioFunc.setValue(samples.data());
 	
 	startWin = endWin = nWindows = 0;
 	
@@ -74,12 +71,7 @@ void Synthesizer::reset() {
 		// to peek two samples ahead.
 		windowSize = std::max(windowSize, 2);
 		
-		bufferManager->deleteFloatBuffer(fadeBuffer);
-		
-		if (!(fadeBuffer = bufferManager->newFloatBuffer(windowSize))) { // VERY little memory left.
-			smoothingWindow = windowSize = 0;
-			return;
-		}
+		fadeBuffer.resize(windowSize); // No allocation unless the window outgrows the capacity.
 		
 		float x = -1.0f/windowSize - 1.0f, xDelta = 2.0f/windowSize;
 		for (int i = 0; i < windowSize; i++) {
@@ -89,40 +81,18 @@ void Synthesizer::reset() {
 	}
 }
 
-bool Synthesizer::setBufferSize(int bufferSize) {
+void Synthesizer::setBufferSize(int bufferSize) {
 	if (bufferSize == samplesSize)
-		return true;
-	
-	bufferManager->deleteFloatBuffer(samples);
-	bufferManager->deleteIntBuffer(windowPositions);
+		return;
 	
 	samplesSize = bufferSize;
+	windowPositionsSize = samplesSize/2 + 1;
 	
-	if (samplesSize > 0) {
-		windowPositionsSize = samplesSize/2 + 1;
-		
-		if (!(samples = bufferManager->newFloatBuffer(samplesSize)))
-			goto alloc_failed;
-		
-		if (!(windowPositions = bufferManager->newIntBuffer(windowPositionsSize))) {
-			bufferManager->deleteFloatBuffer(samples);
-			goto alloc_failed;
-		}
-		
-		reset();
-	}
-	else {
-		samples = NULL;
-		windowPositions = NULL;
-	}
+	// assign() zero-fills and reuses the existing allocation when it is big enough.
+	samples.assign(samplesSize, 0.0f);
+	windowPositions.assign(samplesSize > 0 ? windowPositionsSize : 0, 0);
 	
-	return true;
-	
-	alloc_failed:
-	windowPositionsSize = samplesSize = 0;
-	samples = NULL;
-	windowPositions = NULL;
-	return false;
+	reset(); // Does nothing for size 0.
 }
 
 void Synthesizer::setOversamplingMultiplier(int multiplier) {

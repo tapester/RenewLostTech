@@ -22,7 +22,8 @@ DEALINGS IN THE SOFTWARE.
 #define WP_ANALYZER_HPP
 
 #include "wpfunc.hpp"
-#include "BufferManager.hpp"
+
+#include <vector>
 
 class Analyzer {
 private:
@@ -33,8 +34,7 @@ private:
 	      fHighTrig, fLowTrig, fMin, fMax, fW, wW;
 	bool trigInverted;
 	
-	std::vector<float> oldWaveVec, newWaveVec;
-	float *oldWave, *newWave;
+	std::vector<float> oldWave, newWave;
 	
 	SignCode endOfCycle;
 	bool trigDisabled, detectPeak;
@@ -42,7 +42,7 @@ private:
 	float aWeightModifier, aIncWNew, aDecWNew, fWNew, wWNew, amplitude, frequency, maxSample;
 	
 public:
-	// Bind the analyzer to its owner's buffer allocator and allocate its waveform buffers.
+	// Set defaults and allocate the waveform buffers.
 	void initialize(int bufferSize = 0);
 	// Clear trigger history and restart analysis from the supplied signal estimate.
 	void reset(float a = 1.0e-8f, float fHz = 440.0f); // 440Hz = concert A.
@@ -54,7 +54,7 @@ public:
 	
 	int getBufferSize() {return waveBufferSize;}
 	// Replaces both waveform buffers; returns false if either allocation fails.
-	bool setBufferSize(int bufferSize);
+	void setBufferSize(int bufferSize);
 	
 	float getAIncWeight() {return aIncW;}
 	float getADecWeight() {return aDecW;}

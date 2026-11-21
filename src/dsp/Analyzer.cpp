@@ -23,12 +23,7 @@ DEALINGS IN THE SOFTWARE.
 #include <algorithm>
 #include <cmath>
 
-// NOTE: This method does not attempt to delete existing sample buffers.
-// If re-initialization is desired, implement and call a "dispose"
-// method first.
-void Analyzer::initialize(BufferManager *bMan, int bufferSize) {
-	bufferManager = bMan;
-	
+void Analyzer::initialize(int bufferSize) {
 	ampFunc.setValue(&amplitude);
 	freqFunc.setValue(&frequency);
 	
@@ -50,14 +45,12 @@ void Analyzer::initialize(BufferManager *bMan, int bufferSize) {
 	trigInverted = false;
 	endOfCycle = kPosNeg;
 	waveBufferSize = 0;
-	oldWave = NULL;
-	newWave = NULL;
 	
 	setBufferSize(bufferSize);
 }
 
 void Analyzer::reset(float a, float fHz) {
-	if (oldWave == NULL)
+	if (oldWave.empty())
 		return;
 	
 	aWeightModifier = WP_STD_SAMPLE_RATE / globalSampleRate;
@@ -73,41 +66,20 @@ void Analyzer::reset(float a, float fHz) {
 	newWaveSize = 0;
 	maxSample = oldWave[0] = oldWave[1] = 0.0f;
 	
-	waveFunc.setFunction(oldWaveSize, oldWave);
+	waveFunc.setFunction(oldWaveSize, oldWave.data());
 }
 
-bool Analyzer::setBufferSize(int bufferSize) {
+void Analyzer::setBufferSize(int bufferSize) {
 	if (bufferSize == waveBufferSize)
-		return true;
-	
-	bufferManager->deleteFloatBuffer(oldWave);
-	bufferManager->deleteFloatBuffer(newWave);
+		return;
 	
 	waveBufferSize = bufferSize;
 	
-	if (waveBufferSize > 0) {
-		if (!(oldWave = bufferManager->newFloatBuffer(waveBufferSize)))
-			goto alloc_failed;
-		
-		if (!(newWave = bufferManager->newFloatBuffer(waveBufferSize))) {
-			bufferManager->deleteFloatBuffer(oldWave);
-			goto alloc_failed;
-		}
-		
-		reset();
-	}
-	else {
-		oldWave = NULL;
-		newWave = NULL;
-	}
+	// assign() zero-fills and reuses the existing allocation when it is big enough.
+	oldWave.assign(bufferSize, 0.0f);
+	newWave.assign(bufferSize, 0.0f);
 	
-	return true;
-	
-	alloc_failed:
-	waveBufferSize = 0;
-	oldWave = NULL;
-	newWave = NULL;
-	return false;
+	reset(); // Does nothing for size 0.
 }
 
 void Analyzer::setAIncWeight(float weight) {
@@ -236,7 +208,7 @@ void Analyzer::updateFreqAndWave(float sample, float absample) {
 	}
 	
 	// Update signal source for waveform output object.
-	waveFunc.setFunction(newWaveSize, newWave);
+	waveFunc.setFunction(newWaveSize, newWave.data());
 	
 	// Swap the waveform output (oldWave) and recording (newWave) buffer pointers.
 	std::swap(oldWave, newWave);

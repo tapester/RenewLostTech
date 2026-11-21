@@ -231,8 +231,10 @@ void WavePlug::smoothingWinDisplayer(float value, char *text) {
 
 // Constructor.
 WavePlug::WavePlug(audioMasterCallback audioMaster) :
-	AudioEffectX(audioMaster, 1, kNumAllParams), BufferManager()
+	AudioEffectX(audioMaster, 1, kNumAllParams)
 {
+	InitializeCriticalSectionAndSpinCount(&myCriticalSection, 0x80000400);
+	
 	EnterCriticalSection(&myCriticalSection);
 	
 	setNumInputs(2);
@@ -296,6 +298,8 @@ WavePlug::~WavePlug() {
 	editor = NULL;
 	LeaveCriticalSection(&myCriticalSection);
 #endif
+	
+	DeleteCriticalSection(&myCriticalSection);
 }
 
 
@@ -621,8 +625,6 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 	}
 	
 	if (!std::isnan(processingData.newSampleRate)) {
-		float oldSampleRate = globalSampleRate;
-
 		for (int index = 0; index < kNumAllParams; index++) {
 			if (std::isnan(processingData.newParamValues[index]))
 				processingData.newParamValues[index] = processingData.paramValues[index];
@@ -630,18 +632,13 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 		
 		setGlobalSampleRate(processingData.newSampleRate);
 		
-		if (setBufferSizeMultiplier(processingData.bufferSizeMultiplier)) {
-			EnterCriticalSection(&myCriticalSection);
-			AudioEffectX::setSampleRate(processingData.newSampleRate);
-			LeaveCriticalSection(&myCriticalSection);
-		}
-		else if (processingData.operational)
-			setGlobalSampleRate(oldSampleRate);
-		else {
-			setProcHandlers();
-			setOperational(false);
-			return;
-		}
+		setBufferSizeMultiplier(processingData.bufferSizeMultiplier);
+		
+		EnterCriticalSection(&myCriticalSection);
+		
+		AudioEffectX::setSampleRate(processingData.newSampleRate);
+		
+		LeaveCriticalSection(&myCriticalSection);
 	}
 	
 	if (doParameterUpdates() > 0) {
@@ -649,32 +646,29 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 		sharedData.bufferSizeMultiplier = processingData.bufferSizeMultiplier;
 		LeaveCriticalSection(&myCriticalSection);
 	}
-	else if (!processingData.operational) {
-		setProcHandlers();
-		setOperational(false);
-	}
 }
 
 bool WavePlug::reinitialize() {
-	ana1.initialize(this);
-	ana2.initialize(this);
+	// Processing components.
+	ana1.initialize();
+	ana2.initialize();
 	modA1.initialize(ana1.getAmpFunction(), ana2.getAmpFunction());
 	modA2.initialize(ana2.getAmpFunction(), ana1.getAmpFunction());
 	modF1.initialize(ana1.getFreqFunction(), ana2.getFreqFunction(), hzToUnsigned(261.63f));
 	modF2.initialize(ana2.getFreqFunction(), ana1.getFreqFunction(), hzToUnsigned(261.63f));
 	modW1.initialize(ana1.getWaveFunction(), ana2.getWaveFunction());
 	modW2.initialize(ana2.getWaveFunction(), ana1.getWaveFunction());
-	syn1.initialize(this, &modA1, &modF1, &modW1);
-	syn2.initialize(this, &modA2, &modF2, &modW2);
+	syn1.initialize(&modA1, &modF1, &modW1);
+	syn2.initialize(&modA2, &modF2, &modW2);
 	modO1.initialize(syn1.getAudioFunction(), syn2.getAudioFunction());
 	modO2.initialize(syn2.getAudioFunction(), syn1.getAudioFunction());
 	
-	if (setBufferSizeMultiplier(processingData.bufferSizeMultiplier)) {
-		editMode = -1;
-		doParameterUpdates();
-	}
-	else
-		processingData.operational = false;
+	// Allocate the sample buffers.
+	setBufferSizeMultiplier(processingData.bufferSizeMultiplier);
+	
+	// Set initial parameter values in components.
+	editMode = -1; // NOT 0 or 1.
+	doParameterUpdates(); // MUST be called AFTER editMode initialization.
 	
 	setProcHandlers();
 	
@@ -691,12 +685,10 @@ int WavePlug::doParameterUpdates() {
 			continue;
 		else if (index < kNumMonoParams) {
 			if (index == kBufferSize) {
-				if (setBufferSizeMultiplier(BUFFER_SIZE_T(processingData.newParamValues[index]))) {
-					processingData.paramValues[index] = processingData.newParamValues[index];
-					nUpdated++;
-				}
-				else if (!processingData.operational)
-					return -1;
+				setBufferSizeMultiplier(BUFFER_SIZE_T(processingData.newParamValues[index]));
+				processingData.paramValues[index] = processingData.newParamValues[index];
+				
+				nUpdated++;
 			}
 		}
 		else {
@@ -714,24 +706,16 @@ int WavePlug::doParameterUpdates() {
 	return nUpdated;
 }
 
-bool WavePlug::setBufferSizeMultiplier(int multiplier) {
+void WavePlug::setBufferSizeMultiplier(int multiplier) {
 	int anaSize = (int) (multiplier * (WP_ANA_BUFFER_SIZE * globalSampleRate) / WP_STD_SAMPLE_RATE),
-			synSize = (int) (multiplier * (WP_SYN_BUFFER_SIZE * globalSampleRate) / WP_STD_SAMPLE_RATE),
-			oldAnaSize = ana1.getBufferSize(),
-			oldSynSize = syn1.getBufferSize();
+			synSize = (int) (multiplier * (WP_SYN_BUFFER_SIZE * globalSampleRate) / WP_STD_SAMPLE_RATE);
 	
-	if (!(ana1.setBufferSize(anaSize) && ana2.setBufferSize(anaSize) &&
-				syn1.setBufferSize(synSize) && syn2.setBufferSize(synSize))) {
-		
-		if (!(ana1.setBufferSize(oldAnaSize) && ana2.setBufferSize(oldAnaSize) &&
-					syn1.setBufferSize(oldSynSize) && syn2.setBufferSize(oldSynSize)))
-			processingData.operational = false;
-		
-		return false;
-	}
+	ana1.setBufferSize(anaSize);
+	ana2.setBufferSize(anaSize);
+	syn1.setBufferSize(synSize);
+	syn2.setBufferSize(synSize);
 	
 	processingData.bufferSizeMultiplier = multiplier;
-	return true;
 }
 
 void WavePlug::setEditMode(int mode) {

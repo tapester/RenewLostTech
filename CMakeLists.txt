@@ -25,8 +25,6 @@ endif()
 set(DSP_SOURCE_FILES
         src/dsp/Analyzer.cpp
         src/dsp/Analyzer.hpp
-        src/dsp/BufferManager.cpp
-        src/dsp/BufferManager.hpp
         src/dsp/Synthesizer.cpp
         src/dsp/Synthesizer.hpp
         src/dsp/wpfunc.cpp

@@ -27,7 +27,6 @@ DEALINGS IN THE SOFTWARE.
 #include <windows.h>
 #endif
 #include "audioeffectx.h"
-#include "BufferManager.hpp"
 #include "Analyzer.hpp"
 #include "wpmodulators.hpp"
 #include "Synthesizer.hpp"
@@ -49,7 +48,7 @@ DEALINGS IN THE SOFTWARE.
 #define WP_ANA_BUFFER_SIZE 1250
 #define WP_SYN_BUFFER_SIZE 1250
 
-class WavePlug : public AudioEffectX, public BufferManager {
+class WavePlug : public AudioEffectX {
 public: // public typedefs
 	typedef void (*funcfcp)(float, char *);
 	
@@ -106,6 +105,9 @@ public: // public static methods
 	
 private: // private data members
 	// ---<<< Shared data                     >>>---
+	// Guards the shared data below between host, editor and audio threads.
+	CRITICAL_SECTION myCriticalSection;
+	
 	// ---<<< ALL ACCESS MUST BE SYNCHRONIZED >>>---
 	
 	// NOTE: Mutable fields inherited from AudioEffectX also count as shared data.
@@ -205,7 +207,7 @@ private: // private methods
 	// Setters.
 	int doParameterUpdates();
 	
-	bool setBufferSizeMultiplier(int multiplier);
+	void setBufferSizeMultiplier(int multiplier);
 	
 	void setEditMode(int mode);
 	
