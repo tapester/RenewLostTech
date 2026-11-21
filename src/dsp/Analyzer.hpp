@@ -26,8 +26,6 @@ DEALINGS IN THE SOFTWARE.
 
 class Analyzer {
 private:
-	BufferManager *bufferManager;
-	
 	RealFunction ampFunc, freqFunc;
 	FunctionFunction waveFunc;
 	
@@ -35,6 +33,7 @@ private:
 	      fHighTrig, fLowTrig, fMin, fMax, fW, wW;
 	bool trigInverted;
 	
+	std::vector<float> oldWaveVec, newWaveVec;
 	float *oldWave, *newWave;
 	
 	SignCode endOfCycle;
@@ -44,7 +43,7 @@ private:
 	
 public:
 	// Bind the analyzer to its owner's buffer allocator and allocate its waveform buffers.
-	void initialize(BufferManager *bMan, int bufferSize = 0);
+	void initialize(int bufferSize = 0);
 	// Clear trigger history and restart analysis from the supplied signal estimate.
 	void reset(float a = 1.0e-8f, float fHz = 440.0f); // 440Hz = concert A.
 	

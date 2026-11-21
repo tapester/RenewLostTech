@@ -98,15 +98,6 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
 
 #define M_LN2 0.69314718055994530942
 
-// Macro for standard processing method.
-#define PROC_METHOD(ioStatements) \
-(float *in0, float *in1, float *out0, float *out1, int sampleFrames) { \
-	while (--sampleFrames >= 0) { \
-		{ioStatements} \
-		syn1.tick(); syn2.tick(); \
-	} \
-}
-
 // Processing handlers.
 const WavePlug::method4fpi WavePlug::procHandlers[9] = {
 	&WavePlug::proc1In1Out,
@@ -242,23 +233,14 @@ void WavePlug::smoothingWinDisplayer(float value, char *text) {
 WavePlug::WavePlug(audioMasterCallback audioMaster) :
 	AudioEffectX(audioMaster, 1, kNumAllParams), BufferManager()
 {
-	// NOTE: This critical section visit is only meaningful on a multiprocessor.
-	// It ensures that the initial values stored in the memory locations
-	// containing the instance fields of the WavePlug object
-	// are seen by all threads. (There might have been something in
-	// that part of the address space before the constructor was called
-	// and parts of the old data might still be cached by some processors.)
 	EnterCriticalSection(&myCriticalSection);
 	
-	// Set plugin properties.
-	setNumInputs(2); // Stereo in.
-	setNumOutputs(2); // Stereo out.
-	setUniqueID(CCONST('C','Q','C','Q')); // Identify.
-	//canMono(); // Mono-to-stereo operation possible.
-	canProcessReplacing(); // Supports both accumulating and replacing output.
-	std::strcpy(programName, "Default");	// Default program name.
+	setNumInputs(2);
+	setNumOutputs(2);
+	setUniqueID(CCONST('C','Q','C','Q'));
+	canProcessReplacing();
+	std::strcpy(programName, "Default");
 	
-	// Set initial plugin info.
 	paramHelpTexts[kPlugVersion] = "Plugin version number.";
 	paramHelpTexts[kBufferSize] = "Sample buffer size multiplier.";
 	std::memcpy(
@@ -268,14 +250,12 @@ WavePlug::WavePlug(audioMasterCallback audioMaster) :
 		paramHelpTexts + kNumMonoParams + kNumParams,
 		initParamHelpTexts, kNumParams * sizeof (const char *));
 	
-	// Set initial plugin configuration.
 	sharedData.operational = true;
 	sharedData.bypassedFlag = false;
 	sharedData.input0Connected = sharedData.output0Connected = 1;
 	sharedData.input1Connected = sharedData.output1Connected = 0;
 	sharedData.bufferSizeMultiplier = 1;
 	
-	// Set initial parameter and signal monitor values.
 	sharedData.paramValues[kPlugVersion] = 0.0f;
 	sharedData.paramValues[kBufferSize] = 2.0f / 7.0f;
 	std::memcpy(
@@ -288,39 +268,32 @@ WavePlug::WavePlug(audioMasterCallback audioMaster) :
 	sharedData.preA1 = sharedData.postA1 = sharedData.preF1 = sharedData.postF1 =
 	sharedData.preA2 = sharedData.postA2 = sharedData.preF2 = sharedData.postF2 = 0.0f;
 	
-	// Tell processing thread to initialize its private data.
-	sharedData.reinitFlag = true; // This is SUPER IMPORTANT!
+	sharedData.reinitFlag = true;
 	sharedData.resetFlag = false;
 	sharedData.setProcessHandlersFlag = false;
 	sharedData.newSampleRate = NAN;
 	std::memcpy(
 		sharedData.newParamValues, sharedData.paramValues, kNumAllParams * sizeof (float));
 	
-	// Create GUI editor (if GUI build).
 	editor = NULL;
 	
 #ifndef WP_NO_GUI
 	try {
 		editor = new WavePlugEditor(this);
 	}
-	catch (std::bad_alloc e) { // Editor allocation failed.
+	catch (std::bad_alloc e) {
 		sharedData.operational = false;
 	}
 #endif
 	
-	// Done.
 	LeaveCriticalSection(&myCriticalSection);
 }
 
 WavePlug::~WavePlug() {
 #ifndef WP_NO_GUI
 	EnterCriticalSection(&myCriticalSection);
-	
-	// NOTE: ~AudioEffect will delete the editor if it exists.
-	// I do it myself here for thread safety.
 	delete editor;
 	editor = NULL;
-	
 	LeaveCriticalSection(&myCriticalSection);
 #endif
 }
@@ -350,60 +323,55 @@ VstInt32 WavePlug::canDo(char *text) {
 	if (!std::strcmp(text, "sendVstEvents") ||
 	    !std::strcmp(text, "sendVstMidiEvent") ||
 	    !std::strcmp(text, "sendVstTimeInfo"))
-		return -1l; // No event send.
+		return -1l;
 	if (!std::strcmp(text, "receiveVstEvents") ||
 	    !std::strcmp(text, "receiveVstMidiEvent") ||
 	    !std::strcmp(text, "receiveVstTimeInfo"))
-		return -1l; // No event receive.
+		return -1l;
 	else if (!std::strcmp(text, "offline") || !std::strcmp(text, "noRealTime"))
-		return -1l; // Realtime interface only.
+		return -1l;
 	else if (!std::strcmp(text, "1in1out") || !std::strcmp(text, "1in2out") ||
 		       !std::strcmp(text, "2in1out") || !std::strcmp(text, "2in2out"))
-		return 1l; // Supported IO configurations.
+		return 1l;
 	else if (!std::strcmp(text, "2in4out") || !std::strcmp(text, "4in2out") ||
 		       !std::strcmp(text, "4in4out") || !std::strcmp(text, "4in8out") ||
 	         !std::strcmp(text, "8in4out") || !std::strcmp(text, "8in8out"))
-		return -1l; // Unsupported IO configurations.
+		return -1l;
 	else if (!std::strcmp(text, "bypass"))
-		return 1l; // Soft/listening bypass supported.
-	return 0l; // Dunno.
+		return 1l;
+	return 0l;
 }
 
-void WavePlug::setProgram(VstInt32 program) {} // No program changes allowed.
+void WavePlug::setProgram(VstInt32 program) {}
 
-void WavePlug::setProgramName(char *name) { // SYNCHRONIZED
+void WavePlug::setProgramName(char *name) {
 	EnterCriticalSection(&myCriticalSection);
-	
-	std::strcpy(programName, name);
-	
+	std::snprintf(programName, sizeof(programName), "%s", name);
 	LeaveCriticalSection(&myCriticalSection);
 }
 
-void WavePlug::getProgramName(char *name) { // SYNCHRONIZED
+void WavePlug::getProgramName(char *name) {
 	EnterCriticalSection(&myCriticalSection);
-	
-	std::strcpy(name, programName);
-	
+	std::snprintf(name, 32, "%s", programName);
 	LeaveCriticalSection(&myCriticalSection);
 }
 
-bool WavePlug::getProgramNameIndexed(VstInt32 category, VstInt32 index, char *text) { // SYNCHRONIZED
+bool WavePlug::getProgramNameIndexed(VstInt32 category, VstInt32 index, char *text) {
 	bool success = false;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	if ((category == 0 || category == -1) && index == 0) {
-		std::strcpy(text, programName);
+		std::snprintf(text, 32, "%s", programName);
 		success = true;
 	}
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return success;
 }
 
-void WavePlug::setParameter(VstInt32 index, float value) { // SYNCHRONIZED
-	// Get appropriate help texts for modulator functions.
+void WavePlug::setParameter(VstInt32 index, float value) {
+	if (index < 0 || index >= kNumAllParams)
+		return;
+	value = clamp01(value);
+
 	const char *const*texts = NULL;
 	
 	switch (index) {
@@ -425,12 +393,12 @@ void WavePlug::setParameter(VstInt32 index, float value) { // SYNCHRONIZED
 		break;
 	}
 	
-	// Set new parameter value (and help texts).
 	EnterCriticalSection(&myCriticalSection);
 	
 	sharedData.newParamValues[index] = value;
+	sharedData.paramValues[index] = value;
 	
-	if (texts != NULL) { // Modulator function parameter updated.
+	if (texts != NULL) {
 		paramHelpTexts[index] = texts[0];
 		paramHelpTexts[index+1] = texts[1];
 	}
@@ -443,15 +411,11 @@ void WavePlug::setParameter(VstInt32 index, float value) { // SYNCHRONIZED
 	LeaveCriticalSection(&myCriticalSection);
 }
 
-float WavePlug::getParameter(VstInt32 index) { // SYNCHRONIZED
+float WavePlug::getParameter(VstInt32 index) {
 	float value = NAN;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	value = sharedData.paramValues[index];
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return value;
 }
 
@@ -464,7 +428,6 @@ void WavePlug::getParameterName(VstInt32 index, char *label) {
 	}
 	else {
 		index -= kNumMonoParams;
-		
 		std::strcpy(label, paramNames[index % kNumParams]);
 		std::strcat(label, (index < kNumParams) ? "1" : "2");
 	}
@@ -472,7 +435,6 @@ void WavePlug::getParameterName(VstInt32 index, char *label) {
 
 void WavePlug::getParameterDisplay(VstInt32 index, char *text) {
 	float value = getParameter(index);
-	
 	if (index < kNumMonoParams) {
 		if (index == kPlugVersion)
 			std::strcpy(text, WP_VERSION_STRING(WP_MAJOR, WP_MINOR, WP_UPDATE));
@@ -481,7 +443,6 @@ void WavePlug::getParameterDisplay(VstInt32 index, char *text) {
 	}
 	else {
 		index -= kNumMonoParams;
-		
 		paramDisplayers[index % kNumParams](value, text);
 	}
 }
@@ -491,50 +452,39 @@ void WavePlug::getParameterLabel(VstInt32 index, char *label) {
 		std::strcpy(label, "");
 	else {
 		index -= kNumMonoParams;
-		
 		std::strcpy(label, paramLabels[index % kNumParams]);
 	}
 }
 
-void WavePlug::setSampleRate(float sRate) { // SYNCHRONIZED
+void WavePlug::setSampleRate(float sRate) {
 	EnterCriticalSection(&myCriticalSection);
-	
 	sharedData.newSampleRate = sRate;
-	
 	LeaveCriticalSection(&myCriticalSection);
 }
 
-bool WavePlug::setBypass(bool onOff) { // SYNCHRONIZED
+bool WavePlug::setBypass(bool onOff) {
 	EnterCriticalSection(&myCriticalSection);
-	
 	sharedData.bypassedFlag = onOff;
 	sharedData.setProcessHandlersFlag = true;
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return true;
 }
 
-void WavePlug::suspend() { // SYNCHRONIZED
+void WavePlug::suspend() {
 	EnterCriticalSection(&myCriticalSection);
-	
 	sharedData.resetFlag = true;
-	
 	LeaveCriticalSection(&myCriticalSection);
 }
 
-void WavePlug::resume() { // SYNCHRONIZED
+void WavePlug::resume() {
 	bool noInputs = false, noOutputs = false;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	sharedData.resetFlag = true;
 	sharedData.setProcessHandlersFlag = true;
-	
-    sharedData.input0Connected = true; // isInputConnected(0l);
-	sharedData.input1Connected = true; // isInputConnected(1l);
-    sharedData.output0Connected = true; // isOutputConnected(0l);
-	sharedData.output1Connected = true; // isOutputConnected(1l);
+	sharedData.input0Connected = true;
+	sharedData.input1Connected = true;
+	sharedData.output0Connected = true;
+	sharedData.output1Connected = true;
 	
 	if (!(sharedData.input0Connected | sharedData.input1Connected)) {
 		sharedData.operational = false;
@@ -556,20 +506,10 @@ void WavePlug::resume() { // SYNCHRONIZED
 		throw std::runtime_error("WavePlug::resume - No outputs connected.");
 }
 
-/*void WavePlug::process(float **inputs, float **outputs, long sampleFrames) {
-	doThreadSynchronizedDataExchange();
-	
-	(this->*procHandler)(
-		inputs[in0Index], inputs[in1Index], outputs[out0Index], outputs[out1Index], sampleFrames);
-}*/
-
 void WavePlug::processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames) {
-	// NOTE: The VST SDK documentation states that the processReplacing method is called
-	// with the denormalized flush-to-zero mode enabled. However, some hosts (e.g., Reaper) do not enable this mode, so we enable it here to be safe.
 	#if defined(_DEBUG) && defined(_MSC_VER)
-		// FpTrap fpTrap;      // Debug only: stop at the first invalid floating-point operation
 	#endif
-	ScopedFtz ftz;      // flush denormals to zero while processing
+	ScopedFtz ftz;
 
 	doThreadSynchronizedDataExchange();
 	
@@ -579,81 +519,59 @@ void WavePlug::processReplacing(float **inputs, float **outputs, VstInt32 sample
 
 
 // Non-inherited non-virtual public methods.
-const char *WavePlug::getParamHelpText(int index) { // SYNCHRONIZED
+const char *WavePlug::getParamHelpText(int index) {
 	const char *helpText = "";
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	helpText = paramHelpTexts[index];
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return helpText;
 }
 
-float WavePlug::getAmplitude(int channel, bool postmod) { // SYNCHRONIZED
+float WavePlug::getAmplitude(int channel, bool postmod) {
 	float value = NAN;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	value = (channel == 0)
 		? ((postmod) ? sharedData.postA1 : sharedData.preA1)
 		: ((channel == 1)
 			? ((postmod) ? sharedData.postA2 : sharedData.preA2)
 	    : 0.0f);
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return value;
 }
 
-float WavePlug::getFrequency(int channel, bool postmod) { // SYNCHRONIZED
+float WavePlug::getFrequency(int channel, bool postmod) {
 	float value = NAN;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	value = (channel == 0)
 		? ((postmod) ? sharedData.postF1 : sharedData.preF1)
 		: ((channel == 1)
 			? ((postmod) ? sharedData.postF2 : sharedData.preF2)
 	    : 0.0f);
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return value;
 }
 
-bool WavePlug::isOperational() { // SYNCHRONIZED
+bool WavePlug::isOperational() {
 	bool flag = false;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	flag = sharedData.operational;
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return flag;
 }
 
-int WavePlug::getBufferSizeMultiplier() { // SYNCHRONIZED
+int WavePlug::getBufferSizeMultiplier() {
 	int multiplier = -1;
-	
 	EnterCriticalSection(&myCriticalSection);
-	
 	multiplier = sharedData.bufferSizeMultiplier;
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
 	return multiplier;
 }
 
 
 // ---<<< PRIVATE METHODS BEGIN HERE >>>---
-void WavePlug::setOperational(bool flag) { // SYNCHRONIZED
+void WavePlug::setOperational(bool flag) {
 	EnterCriticalSection(&myCriticalSection);
-	
 	sharedData.operational = flag;
-	
 	LeaveCriticalSection(&myCriticalSection);
 }
 
@@ -661,18 +579,13 @@ void WavePlug::WavePlugData::clearUpdateFields() {
 	reinitFlag = false;
 	resetFlag = false;
 	setProcessHandlersFlag = false;
-	
 	newSampleRate = NAN;
-	
 	std::fill(newParamValues, newParamValues + kNumAllParams, NAN);
 }
 
 void WavePlug::doThreadSynchronizedDataExchange() {
-	
-	// Snapshot host updates under the lock, then apply them on the audio thread unlocked.
 	EnterCriticalSection(&myCriticalSection);
 	
-	// Update signal monitors.
 	if (sharedData.operational & !sharedData.reinitFlag) {
 		sharedData.preA1 = ana1.getAmplitude();
 		sharedData.postA1 = syn1.getAmplitude();
@@ -684,13 +597,11 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 		sharedData.postF2 = syn2.getFrequency();
 	}
 	
-	// Copy shared structure to thread-private structure.
 	processingData = sharedData;
 	sharedData.clearUpdateFields();
 	
 	LeaveCriticalSection(&myCriticalSection);
 	
-	// Update plugin configuration.
 	if (processingData.reinitFlag) {
 		if (!reinitialize())
 			setOperational(false);
@@ -699,7 +610,7 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 	if (processingData.setProcessHandlersFlag)
 		setProcHandlers();
 	
-	if (!processingData.operational) // An unrecoverable setup error disables processing.
+	if (!processingData.operational)
 		return;
 	
 	if (processingData.resetFlag) {
@@ -711,43 +622,40 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 	
 	if (!std::isnan(processingData.newSampleRate)) {
 		float oldSampleRate = globalSampleRate;
+
+		for (int index = 0; index < kNumAllParams; index++) {
+			if (std::isnan(processingData.newParamValues[index]))
+				processingData.newParamValues[index] = processingData.paramValues[index];
+		}
 		
 		setGlobalSampleRate(processingData.newSampleRate);
 		
 		if (setBufferSizeMultiplier(processingData.bufferSizeMultiplier)) {
 			EnterCriticalSection(&myCriticalSection);
-			
 			AudioEffectX::setSampleRate(processingData.newSampleRate);
-			
 			LeaveCriticalSection(&myCriticalSection);
 		}
-		else if (processingData.operational) // Old buffer size restored.
+		else if (processingData.operational)
 			setGlobalSampleRate(oldSampleRate);
-		else { // Sample buffers unrecoverably lost.
-			setProcHandlers(); // Set emergency handlers.
+		else {
+			setProcHandlers();
 			setOperational(false);
 			return;
 		}
 	}
 	
-	// Perform parameter updates. Write back new param values to shared structure.
 	if (doParameterUpdates() > 0) {
 		EnterCriticalSection(&myCriticalSection);
-		
-		std::memcpy(
-			sharedData.paramValues, processingData.paramValues, sizeof sharedData.paramValues);
 		sharedData.bufferSizeMultiplier = processingData.bufferSizeMultiplier;
-		
 		LeaveCriticalSection(&myCriticalSection);
 	}
-	else if (!processingData.operational) { // Unrecoverable error.
-		setProcHandlers(); // Set emergency handlers.
+	else if (!processingData.operational) {
+		setProcHandlers();
 		setOperational(false);
 	}
 }
 
 bool WavePlug::reinitialize() {
-	// Processing components.
 	ana1.initialize(this);
 	ana2.initialize(this);
 	modA1.initialize(ana1.getAmpFunction(), ana2.getAmpFunction());
@@ -761,16 +669,13 @@ bool WavePlug::reinitialize() {
 	modO1.initialize(syn1.getAudioFunction(), syn2.getAudioFunction());
 	modO2.initialize(syn2.getAudioFunction(), syn1.getAudioFunction());
 	
-	// Attempt to allocate minimal sample buffers.
 	if (setBufferSizeMultiplier(processingData.bufferSizeMultiplier)) {
-		// Set initial parameter values in components.
-		editMode = -1; // NOT 0 or 1.
-		doParameterUpdates(); // MUST be called AFTER editMode initialization.
+		editMode = -1;
+		doParameterUpdates();
 	}
 	else
 		processingData.operational = false;
 	
-	// Set initial processing handlers.
 	setProcHandlers();
 	
 	return processingData.operational;
@@ -782,18 +687,15 @@ int WavePlug::doParameterUpdates() {
 	int nUpdated = 0;
 	
 	for (int index = 0; index < kNumAllParams; index++) {
-		if (std::isnan(processingData.newParamValues[index])) // Parameter not updated.
+		if (std::isnan(processingData.newParamValues[index]))
 			continue;
 		else if (index < kNumMonoParams) {
-			// Ignore attempts to set the "PlugVersion" dummy parameter.
-			
 			if (index == kBufferSize) {
 				if (setBufferSizeMultiplier(BUFFER_SIZE_T(processingData.newParamValues[index]))) {
 					processingData.paramValues[index] = processingData.newParamValues[index];
-					
 					nUpdated++;
 				}
-				else if (!processingData.operational) // Sample buffers unrecoverably lost.
+				else if (!processingData.operational)
 					return -1;
 			}
 		}
@@ -835,7 +737,6 @@ bool WavePlug::setBufferSizeMultiplier(int multiplier) {
 void WavePlug::setEditMode(int mode) {
 	if (mode == 0 && editMode != 0) {
 		editMode = 0;
-		
 		anaE  = &ana1;
 		modAE = &modA1;
 		modFE = &modF1;
@@ -845,7 +746,6 @@ void WavePlug::setEditMode(int mode) {
 	}
 	else if (mode == 1 && editMode != 1) {
 		editMode = 1;
-		
 		anaE  = &ana2;
 		modAE = &modA2;
 		modFE = &modF2;
@@ -856,62 +756,37 @@ void WavePlug::setEditMode(int mode) {
 }
 
 void WavePlug::aAIWSetter(float value) {anaE->setAIncWeight(INC_LAG_T(value));}
-
 void WavePlug::aADWSetter(float value) {anaE->setADecWeight(DEC_LAG_T(value));}
-
 void WavePlug::aAGLSetter(float value) {anaE->setAmpGateLevel(A_GATE_LVL_T(value));}
-
 void WavePlug::aSGLSetter(float value) {anaE->setSampleGateLevel(S_GATE_LVL_T(value));}
-
 void WavePlug::aFHTSetter(float value) {anaE->setHighTrig(TRIG_LVL_T(value));}
-
 void WavePlug::aFLTSetter(float value) {anaE->setLowTrig(TRIG_LVL_T(value));}
-
 void WavePlug::aFMinSetter(float value) {anaE->setFMin(F_MIN_T(value));}
-
 void WavePlug::aFMaxSetter(float value) {anaE->setFMax(F_MAX_T(value));}
-
 void WavePlug::aFWSetter(float value) {anaE->setFWeight(F_LAG_T(value));}
-
 void WavePlug::aWWSetter(float value) {anaE->setWWeight(W_LAG_T(value));}
-
 void WavePlug::aITSetter(float value) {anaE->setTrigInverted(BOOL_T(value));}
-
 void WavePlug::aWISetter(float value) {anaE->setWInterpolation(BOOL_T(value));}
-
 void WavePlug::mAModSetter(float value) {modAE->setModulation(U_MOD_TYPE_T(value));}
-
 void WavePlug::mAMixSetter(float value) {modAE->setMix(value);}
-
 void WavePlug::mFModSetter(float value) {modFE->setModulation(U_MOD_TYPE_T(value));}
-
 void WavePlug::mFMixSetter(float value) {modFE->setMix(value);}
-
 void WavePlug::mWModSetter(float value) {modWE->setModulation(F_MOD_TYPE_T(value));}
-
 void WavePlug::mWMixSetter(float value) {modWE->setMix(value);}
-
 void WavePlug::sAOffSetter(float value) {synE->setAOffset(A_OFFSET_T(value));}
-
 void WavePlug::sAGainSetter(float value) {synE->setAGain(A_GAIN_T(value));}
-
 void WavePlug::sFOffSetter(float value) {synE->setFOffset(F_OFFSET_T(value));}
-
 void WavePlug::sFGainSetter(float value) {synE->setFGain(F_GAIN_T(value));}
-
 void WavePlug::sOverSetter(float value) {synE->setOversamplingMultiplier(OVER_T(value));}
-
 void WavePlug::sWindSetter(float value) {synE->setSmoothingWindow(WINDOW_T(value));}
-
 void WavePlug::mOModSetter(float value) {modOE->setModulation(S_MOD_TYPE_T(value));}
-
 void WavePlug::mOMixSetter(float value) {modOE->setMix(value);}
 
 
 // Processing handlers.
 void WavePlug::setProcHandlers() {
-	if (!processingData.operational) { // Unrecoverable error.
-		procHandler = procHandlers[8]; // Use do-nothing handlers.
+	if (!processingData.operational) {
+		procHandler = procHandlers[8];
 		procRHandler = procRHandlers[8];
 		return;
 	}
@@ -919,126 +794,190 @@ void WavePlug::setProcHandlers() {
 	int handlerIndex = 0;
 	
 	switch (processingData.input1Connected << 1 | processingData.input0Connected) {
-		case 1: // !in1 in0
+		case 1:
 		in1Index = 0; in0Index = 0;
 		break;
 		
-		case 2: // in1 !in0
+		case 2:
 		in1Index = 1; in0Index = 1;
 		break;
 		
-		case 3: // in1 in0
+		case 3:
 		in1Index = 1; in0Index = 0;
-		handlerIndex += 4; // Two inputs.
+		handlerIndex += 4;
 		break;
 	}
 	
 	switch (processingData.output1Connected << 1 | processingData.output0Connected) {
-		case 1: // !out1 out0
+		case 1:
 		out1Index = 0; out0Index = 0;
 		break;
 		
-		case 2: // out1 !out0
+		case 2:
 		out1Index = 1; out0Index = 1;
 		break;
 		
-		case 3: // out1 out0
+		case 3:
 		out1Index = 1; out0Index = 0;
-		handlerIndex += 2; // Two outputs.
+		handlerIndex += 2;
 		break;
 	}
 	
 	if (processingData.bypassedFlag)
-		handlerIndex += 1; // Bypass mode.
+		handlerIndex += 1;
 	
 	procHandler = procHandlers[handlerIndex];
 	procRHandler = procRHandlers[handlerIndex];
 }
 
-void WavePlug::proc1In1Out PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0++);
-	*out0++ += modO1.getValue();)
+void WavePlug::proc1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0++);
+		*out0++ += modO1.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc1In1OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0);
-	*out0++ += *in0++;)
+void WavePlug::proc1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0);
+		*out0++ += *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc1In2Out PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0++);
-	*out0++ += modO1.getValue();
-	*out1++ += modO2.getValue();)
+void WavePlug::proc1In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0++);
+		*out0++ += modO1.getValue();
+		*out1++ += modO2.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc1In2OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0);
-	*out0++ += *in0;
-	*out1++ += *in0++;)
+void WavePlug::proc1In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0);
+		*out0++ += *in0;
+		*out1++ += *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc2In1Out PROC_METHOD(
-	ana1.addSample(*in0++);
-	ana2.addSample(*in1++);
-	*out0++ += modO1.getValue();)
+void WavePlug::proc2In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0++);
+		ana2.addSample(*in1++);
+		*out0++ += modO1.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc2In1OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in1++);
-	*out0++ += *in0++;)
+void WavePlug::proc2In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in1++);
+		*out0++ += *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc2In2Out PROC_METHOD(
-	ana1.addSample(*in0++);
-	ana2.addSample(*in1++);
-	*out0++ += modO1.getValue();
-	*out1++ += modO2.getValue();)
+void WavePlug::proc2In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0++);
+		ana2.addSample(*in1++);
+		*out0++ += modO1.getValue();
+		*out1++ += modO2.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::proc2In2OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in1);
-	*out0++ += *in0++;
-	*out1++ += *in1++;)
+void WavePlug::proc2In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in1);
+		*out0++ += *in0++;
+		*out1++ += *in1++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR1In1Out PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0++);
-	*out0++ = modO1.getValue();)
+void WavePlug::procR1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0++);
+		*out0++ = modO1.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR1In1OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0);
-	*out0++ = *in0++;)
+void WavePlug::procR1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0);
+		*out0++ = *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR1In2Out PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0++);
-	*out0++ = modO1.getValue();
-	*out1++ = modO2.getValue();)
+void WavePlug::procR1In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0++);
+		*out0++ = modO1.getValue();
+		*out1++ = modO2.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR1In2OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in0);
-	*out0++ = *in0;
-	*out1++ = *in0++;)
+void WavePlug::procR1In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in0);
+		*out0++ = *in0;
+		*out1++ = *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR2In1Out PROC_METHOD(
-	ana1.addSample(*in0++);
-	ana2.addSample(*in1++);
-	*out0++ = modO1.getValue();)
+void WavePlug::procR2In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0++);
+		ana2.addSample(*in1++);
+		*out0++ = modO1.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR2In1OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in1++);
-	*out0++ = *in0++;)
+void WavePlug::procR2In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in1++);
+		*out0++ = *in0++;
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR2In2Out PROC_METHOD(
-	ana1.addSample(*in0++);
-	ana2.addSample(*in1++);
-	*out0++ = modO1.getValue();
-	*out1++ = modO2.getValue();)
+void WavePlug::procR2In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0++);
+		ana2.addSample(*in1++);
+		*out0++ = modO1.getValue();
+		*out1++ = modO2.getValue();
+		syn1.tick(); syn2.tick();
+	}
+}
 
-void WavePlug::procR2In2OutB PROC_METHOD(
-	ana1.addSample(*in0);
-	ana2.addSample(*in1);
-	*out0++ = *in0++;
-	*out1++ = *in1++;)
+void WavePlug::procR2In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
+	while (--sampleFrames >= 0) {
+		ana1.addSample(*in0);
+		ana2.addSample(*in1);
+		*out0++ = *in0++;
+		*out1++ = *in1++;
+		syn1.tick(); syn2.tick();
+	}
+}
