@@ -34,13 +34,14 @@
   Loading a saved project is fine, because all knobs are re-sent after the rate is set. Only a live switch breaks.
 - **Fix:** In `doThreadSynchronizedDataExchange`, when a new rate arrives, copy every stored value into `newParamValues` wherever it is NaN. The existing `doParameterUpdates()` call just below then re-applies all knobs at the new rate. That is about 3 lines.
 - **If we skip it:** After a rate change the plug-in sounds different until you touch each knob.
-- **MFIXED**
+- **FIXED**
 
 **5. The sample rate is one global shared by every instance** (`src/dsp/wpfunc.hpp:30-34`, `:49-54`, `wpfunc.cpp:24-28`)
 - **What this is:** `globalSampleRate`, `globalMaxFrequency` and `globalMinPeriodLength` are plain global floats. About 20 places read them.
 - **Problem:** Two instances at different rates overwrite each other. I ran it: A ran at 44.1 kHz, then B started at 96 kHz, and the global became 96000. When A processed again it still read 96000. A then uses the wrong rate for its limits and time constants. Different audio threads also write the globals without any lock.
 - **Fix:** Keep the rate in each plug-in instance and pass it to the analyzer, synthesizer and modulators instead of reading the globals.
 - **If we skip it:** Wrong sound, or a data race, if a host runs two projects at different rates in one process. This is rare.
+-**IGNORED**
 
 **6. The audio thread allocates and frees memory** (`WavePlug.cpp:694-697`, `:715-722`, `src/dsp/Synthesizer.cpp:57-90`, `src/dsp/BufferManager.cpp:76-135`)
 - **What this is:** The audio thread is the one that must finish each block in a few milliseconds. Memory allocation can wait on a system lock.
@@ -62,7 +63,7 @@
 - **Problem:** No test covers the cycle finder, the output ring buffer, the modulators, the knob mappings or the rate change. Findings 1, 2 and 4 would each be caught by a few lines of test. The macOS pluginval step has `continue-on-error: true`. The Windows job never runs it. The local pluginval tests only exist if a git-ignored `pluginval.exe` is present.
 - **Fix:** Add three small tests and build them with `-fsanitize=address,undefined` on the macOS runner: out-of-range values (−1, 1.5, NaN), a set-then-get round trip, and the rate-change check. My rate-change probe is about 60 lines and needs no SDK. Remove `continue-on-error` once pluginval passes.
 - **If we skip it:** These bugs can return without anyone noticing.
-- **STARTED_BUILD_FAILED**
+- **FIXED**
 
 **8. CI uses mutable third-party references and does not build the documented way** (`.github/workflows/windows.yml:17-28`, `macos.yml:68-76`)
 - **What this is:** These workflows build the DLLs and the macOS bundle that people download.

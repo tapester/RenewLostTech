@@ -29,8 +29,6 @@ DEALINGS IN THE SOFTWARE.
 
 class Synthesizer {
 private:
-	BufferManager *bufferManager;
-	
 	RealFunction audioFunc;
 	
 	UnsignedModulator *inA, *inF;
@@ -39,6 +37,9 @@ private:
 	float aOffset, aGain, fOffset, fGain;
 	int oversamplingMultiplier, smoothingWindow;
 	
+	std::vector<float> samplesVec;
+	std::vector<int> windowPositionsVec;
+	std::vector<float> fadeBufferVec;
 	float *samples;
 	int *windowPositions;
 	float *fadeBuffer;
@@ -50,7 +51,6 @@ private:
 public:
 	// Wire the modulators and allocator, then create the output and smoothing buffers.
 	void initialize(
-		BufferManager *bMan,
 		UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
 		FunctionModulator *inputW = NULL, int bufferSize = 0);
 	void reset();
