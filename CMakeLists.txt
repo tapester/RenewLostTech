@@ -75,9 +75,8 @@ if(WIN32)
 elseif(APPLE)
     # VST 2 on macOS is a bundle (.vst) containing a loadable module.
     add_library(LostTechNoGUI MODULE ${NOGUI_SOURCE_FILES})
-else()
-    add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES})
 endif()
+# Other platforms get no plug-in target, only the DSP tests below.
 
 # ---------------------------------------------------------------------------
 # Convenience target used with the Debug configuration to build the GUI plug-in.
@@ -87,7 +86,10 @@ if(TARGET LostTech)
 endif()
 
 # Plug-in targets that exist on this platform.
-set(PLUGIN_TARGETS LostTechNoGUI)
+set(PLUGIN_TARGETS)
+if(TARGET LostTechNoGUI)
+    list(APPEND PLUGIN_TARGETS LostTechNoGUI)
+endif()
 if(TARGET LostTech)
     list(APPEND PLUGIN_TARGETS LostTech)
 endif()
@@ -129,7 +131,9 @@ endforeach()
 if(TARGET LostTech)
     target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
 endif()
-target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
+if(TARGET LostTechNoGUI)
+    target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
+endif()
 
 if(WIN32)
     # Link GUI system libraries.
