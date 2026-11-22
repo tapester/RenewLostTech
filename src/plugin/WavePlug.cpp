@@ -25,24 +25,10 @@ DEALINGS IN THE SOFTWARE.
 #include <cstdio>
 #include <cstring>
 #include <new>
-#include <stdexcept>
 #include "wpfunc.hpp"
 #ifndef WP_NO_GUI
 #include "WavePlugEditor.hpp"
 #endif
-
-// Debugging: trap floating-point exceptions on MSVC debug builds. This is a no-op on other compilers and build configurations.
-/*
-#include <float.h>
-#if defined(_DEBUG) && defined(_MSC_VER)
-   struct FpTrap {
-       unsigned prev, cur;
-       FpTrap()  { _controlfp_s(&prev, 0, 0);
-                   _controlfp_s(&cur, 0, _EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW); }
-       ~FpTrap() { _clearfp(); _controlfp_s(&cur, prev, _MCW_EM); }
-   };   
-#endif
-*/
 
 // Flush denormals to zero while processing audio. The control register is
 // architecture specific: MXCSR on x86, FPCR on arm64 (Apple Silicon).
@@ -481,7 +467,6 @@ void WavePlug::suspend() {
 }
 
 void WavePlug::resume() {
-	bool noInputs = false, noOutputs = false;
 	EnterCriticalSection(&myCriticalSection);
 	sharedData.resetFlag = true;
 	sharedData.setProcessHandlersFlag = true;
@@ -489,30 +474,10 @@ void WavePlug::resume() {
 	sharedData.input1Connected = true;
 	sharedData.output0Connected = true;
 	sharedData.output1Connected = true;
-	
-	if (!(sharedData.input0Connected | sharedData.input1Connected)) {
-		sharedData.operational = false;
-		noInputs = true;
-	}
-	
-	if (!(sharedData.output0Connected | sharedData.output1Connected)) {
-		sharedData.operational = false;
-		noOutputs = true;
-	}
-	
 	LeaveCriticalSection(&myCriticalSection);
-	
-	if (noInputs & noOutputs)
-		throw std::runtime_error("WavePlug::resume - No inputs or outputs connected.");
-	else if (noInputs)
-		throw std::runtime_error("WavePlug::resume - No inputs connected.");
-	else if (noOutputs)
-		throw std::runtime_error("WavePlug::resume - No outputs connected.");
 }
 
 void WavePlug::processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames) {
-	#if defined(_DEBUG) && defined(_MSC_VER)
-	#endif
 	ScopedFtz ftz;
 
 	doThreadSynchronizedDataExchange();
@@ -561,14 +526,6 @@ bool WavePlug::isOperational() {
 	flag = sharedData.operational;
 	LeaveCriticalSection(&myCriticalSection);
 	return flag;
-}
-
-int WavePlug::getBufferSizeMultiplier() {
-	int multiplier = -1;
-	EnterCriticalSection(&myCriticalSection);
-	multiplier = sharedData.bufferSizeMultiplier;
-	LeaveCriticalSection(&myCriticalSection);
-	return multiplier;
 }
 
 

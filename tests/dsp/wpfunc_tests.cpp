@@ -41,8 +41,6 @@ int main() {
 	        "clamp01 should constrain values to the unit interval");
 	require(clamp01(NAN) == 0.0f,
 	        "clamp01 should convert NaN to zero");
-	require(modulo(-1, 8) == 7 && modulo(9, 8) == 1,
-	        "modulo should return a non-negative wrapped index");
 	require(nearlyEqual(fade(0.0f), 0.0f) && nearlyEqual(fade(1.0f), 1.0f),
 	        "fade should preserve the endpoints");
 	require(signs(-1.0f, 1.0f) == kNegPos && signs(1.0f, -1.0f) == kPosNeg,
@@ -57,7 +55,7 @@ int main() {
 	require(nearlyEqual(function.getValue(0.25f), 2.5f),
 	        "waveform lookup should interpolate between neighboring samples");
 
-	// Test out-of-range values for clamp01 and modulo
+	// Test out-of-range values for clamp01
 	float testValues[] = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 1.5f};
 	for (float v : testValues) {
 		require(clamp01(v) >= 0.0f && clamp01(v) <= 1.0f,
@@ -102,13 +100,6 @@ int main() {
 	require(nearlyEqual(a.hzToUnsigned(440.0f), 440.0f / 22000.0f) &&
 	        nearlyEqual(a.unsignedToHz(0.0f), 1.0f),
 	        "SampleRate hz conversions should match the free functions");
-
-	// Test modulo with negative and positive values
-	int testModulo[] = {-1, 0, 1, 7, 8, 9, -256, 256};
-	for (int i : testModulo) {
-		require(modulo(i, 8) >= 0 && modulo(i, 8) < 8,
-		        "modulo should return non-negative wrapped index");
-	}
 
 	// Test fade function at various points
 	float fadeTestValues[] = {0.0f, 0.25f, 0.5f, 0.75f, 1.0f};

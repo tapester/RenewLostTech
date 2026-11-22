@@ -59,7 +59,6 @@ public:
 	
 	RealFunction *getAudioFunction() {return &audioFunc;}
 	
-	int getBufferSize() {return samplesSize;}
 	void setBufferSize(int bufferSize);
 	
 	float getAOffset() {return aOffset;}

@@ -218,9 +218,6 @@ WavePlugEditor::WavePlugEditor(AudioEffect *effect) :
 AEffGUIEditor(effect), wavePlug((WavePlug *) effect),
 componentLocks(paramLocks + kNumParams), globalLock(paramLocks + kNParamLocks - 1),
 lastTouchedParamIndex(-1), showHelp(false), paramTouched(false) {
-	#if GDIPLUS
-    	VSTGUI::GDIPlusGlobals::enter();   // hold GDI+ open until this editor object dies
-	#endif
 	rect.left = 0; rect.top = 0; rect.right = 512; rect.bottom = 488;
 	displayBackColor(235, 235, 235, 0);
 	displayFontColor(0, 0, 0, 0);
@@ -239,11 +236,8 @@ lastTouchedParamIndex(-1), showHelp(false), paramTouched(false) {
 
 // Destructor.
 WavePlugEditor::~WavePlugEditor() {
-    if (frame)          // host never called close(): release the frame while GDI+ is still alive
+    if (frame)          // host never called close(): release the frame
         close();
-#if GDIPLUS
-    VSTGUI::GDIPlusGlobals::exit();
-#endif
 }
 
 // Inherited virtual public methods.
@@ -409,23 +403,6 @@ bool WavePlugEditor::open(void *ptr) {
 }
 
 void WavePlugEditor::close() {
-	/*
-	CFrame *oldFrame = frame;
-	frame = NULL;
-
-	delete oldFrame;
-
-	AEffGUIEditor::close();
-	*/
-	/* Previous implementation, retained for easy reversion:
-	// NOTE: GUI components and their bitmaps are deleted by ~CFrame.
-	if (frame != NULL) {
-		delete frame;
-		frame = NULL;
-	}
-
-	AEffGUIEditor::close();
-	*/
 	if (frame != nullptr) {
 		delete frame;
 		frame = nullptr;
@@ -466,28 +443,6 @@ void WavePlugEditor::idle() {
 		paramTouched = false;
 	}
 }
-
-// Deprecated implementation of setParameter, retained for reference. The new implementation uses atomic variables to safely communicate parameter changes from the host thread to the GUI thread.
-/*
-void WavePlugEditor::setParameter(VstInt32 index, float value) {
-	if (!frame)
-		return;
-	
-	if (index == kBufferSize) {
-		bufrMenu->setValue(7.0f*value + 0.5f);
-		
-		//postUpdate();
-	}
-	else if (index >= kNumMonoParams) {
-		int stereoIndex = index - kNumMonoParams;
-		
-		controls[stereoIndex]->setValue(value);
-		displays[stereoIndex]->setValue(value);
-		
-		//postUpdate();
-	}
-}
-*/
 
 void WavePlugEditor::setParameter(VstInt32 index, float value) {
     // Host threads land here: queue only, never touch VSTGUI objects.

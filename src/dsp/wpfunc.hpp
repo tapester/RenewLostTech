@@ -38,12 +38,6 @@ extern float globalMinPeriodLength;
 
 #define WP_EXT_INLINE inline
 
-/*#ifndef WP_WPFUNC_CPP
-#define WP_EXT_INLINE extern inline
-#else
-#define WP_EXT_INLINE
-#endif*/
-
 WP_EXT_INLINE float sampleRateToMaxFreq(float sampleRate) {
 	return (sampleRate - 100.0f)/2.0f;
 }
@@ -82,8 +76,6 @@ WP_EXT_INLINE float unsignedToHz(float usigned) {
 }
 
 WP_EXT_INLINE float clamp01(float x) {return std::max(0.0f, std::min(x, 1.0f));}
-
-WP_EXT_INLINE int modulo(int n, int d) {return ((n % d) + d) % d;}
 
 WP_EXT_INLINE float fade(float x) {
 	float x2 = x*x;

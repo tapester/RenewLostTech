@@ -89,6 +89,7 @@
 - **Problem:** Lines 534-537 set all four connection flags to true, and the real queries are commented out. So `noInputs` and `noOutputs` are never true, and the three `throw`s and `operational = false` cannot run. Because the flags are always true after `resume()`, only the stereo-in/stereo-out pair (`procR2In2Out`, `procR2In2OutB`) is ever chosen. The other six variants run only if a host skips `resume()`.
 - **Fix:** Delete the unreachable branches, about −20 lines. Then decide whether to drop the six unused variants or restore the real connection queries.
 - **If we skip it:** The error handling looks real but does nothing.
+- **FIXED:** The unreachable branches and throws in `resume()` are deleted. The six extra in/out handler variants stay, because a host that never calls `resume()` still uses them.
 
 **12. Commented-out and never-called code** (several files)
 - **What this is:** Code that is switched off or that nothing calls.
@@ -102,6 +103,7 @@
   Another 35 lines are getters and setters that nothing calls, for example 12 getters at `Analyzer.hpp:60-71` and `getBufferSizeMultiplier`. `modulo()` is used only by its own test. `Analyzer::oldWaveSize` is written and never read.
 - **Fix:** Delete all of it, about −120 lines. I grepped the whole tree first.
 - **If we skip it:** More code to read, with nothing gained.
+- **FIXED:** The commented-out blocks, the never-defined `GDIPLUS` blocks, the 12 `Analyzer` getters, the two `getBufferSize()` getters, `getBufferSizeMultiplier` and `modulo()` (with its test) are deleted. `Analyzer::oldWaveSize` is kept: `reset()` reads it. `WP_OLD_WINDOWS` went with `BufferManager`.
 
 ## Nice to have
 
