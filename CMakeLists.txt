@@ -34,20 +34,30 @@ set(DSP_SOURCE_FILES
         )
 
 # ---------------------------------------------------------------------------
-# Common plug-in headers and parameter definitions.
+# The effect itself (parameters, threading, processing). No plug-in SDK needed, so every
+# plug-in format and the golden test build on it.
+# ---------------------------------------------------------------------------
+set(CORE_SOURCE_FILES
+        ${DSP_SOURCE_FILES}
+        src/common/wpstdinclude.h
+        src/core/LostTechCore.cpp
+        src/core/LostTechCore.hpp
+        src/core/LostTechParameters.cpp
+        src/core/waveplugparams.h
+        )
+
+# ---------------------------------------------------------------------------
+# VST 2 shell around the core.
 # ---------------------------------------------------------------------------
 set(PLUGIN_COMMON_FILES
-        src/common/wpstdinclude.h
+        ${CORE_SOURCE_FILES}
         src/plugin/WavePlug.hpp
-        src/plugin/WavePlugParameters.cpp
-        src/plugin/waveplugparams.h
         )
 
 # ---------------------------------------------------------------------------
 # GUI plug-in sources, including the VSTGUI editor and Windows resources.
 # ---------------------------------------------------------------------------
 set(GUI_SOURCE_FILES
-        ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
         src/plugin/WavePlug.cpp
         src/plugin/WavePlugMain.cpp
@@ -60,7 +70,6 @@ set(GUI_SOURCE_FILES
 # The no-GUI variant reuses WavePlug.cpp through a wrapper that defines WP_NO_GUI.
 # ---------------------------------------------------------------------------
 set(NOGUI_SOURCE_FILES
-        ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
         src/plugin/WavePlugMainNoGUI.cpp
         src/plugin/WavePlugNoGUI.cpp
@@ -117,6 +126,7 @@ endforeach()
 set(PLUGIN_INCLUDE_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}
         src/common
+        src/core
         src/dsp
         src/plugin
         src/ui
@@ -170,6 +180,13 @@ if(BUILD_TESTING)
     add_executable(wpfunc_tests tests/dsp/wpfunc_tests.cpp src/dsp/wpfunc.cpp)
     target_include_directories(wpfunc_tests PRIVATE src/dsp)
     add_test(NAME wpfunc_tests COMMAND wpfunc_tests)
+    
+    # Whole-effect regression test; needs only the core, so it builds on every platform.
+    add_executable(golden_test tests/core/golden_test.cpp ${CORE_SOURCE_FILES})
+    target_include_directories(golden_test PRIVATE src/common src/core src/dsp)
+    target_compile_definitions(golden_test PRIVATE ${PLUGIN_VERSION_DEFINITIONS})
+    add_test(NAME golden_test
+        COMMAND golden_test ${CMAKE_CURRENT_SOURCE_DIR}/tests/core/golden_reference.bin)
 endif()
 
 # ---------------------------------------------------------------------------

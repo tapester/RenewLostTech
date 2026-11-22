@@ -18,11 +18,11 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 */
 
-#include "WavePlug.hpp"
+#include "LostTechCore.hpp"
 
 // Parameter labels, defaults, help text, displayers, and setter dispatch.
 // Private static data.
-const char *const WavePlug::paramNames[kNumParams] = {
+const char *const LostTechCore::paramNames[kNumParams] = {
 	"AIncLag", "ADecLag", "GatLvlA", "GatLvlS", "HiTrig", "LowTrig",
 	"FMin", "FMax", "FLag", "WLag", "InvTrig", "Interp",
 	"AModTyp", "AModMix", "FModTyp", "FModMix", "WModTyp", "WModMix",
@@ -30,7 +30,7 @@ const char *const WavePlug::paramNames[kNumParams] = {
 	"OModTyp", "OModMix"
 };
 
-const char *const WavePlug::paramLabels[kNumParams] = {
+const char *const LostTechCore::paramLabels[kNumParams] = {
 	"%", "%", "%", "%", "%", "%",
 	"Hz", "Hz", "%", "%", "", "",
 	"type", "%", "type", "%", "type", "%",
@@ -38,7 +38,7 @@ const char *const WavePlug::paramLabels[kNumParams] = {
 	"type", "%"
 };
 
-const char *const WavePlug::initParamHelpTexts[kNumParams] = {
+const char *const LostTechCore::initParamHelpTexts[kNumParams] = {
 	"How quickly output amplitude reacts to an increase in AIL.", // 0
 	"How quickly output amplitude reacts to a decrease in AIL.",
 	"Minimum output amplitude for F&W updates.",
@@ -72,7 +72,7 @@ const char *const WavePlug::initParamHelpTexts[kNumParams] = {
 	""
 };
 
-const char *const WavePlug::modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2] = {
+const char *const LostTechCore::modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."
@@ -107,7 +107,7 @@ const char *const WavePlug::modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2]
 	}
 };
 
-const char *const WavePlug::modFuncSHelpTexts[SignedModulator::kNModTypesS][2] = {
+const char *const LostTechCore::modFuncSHelpTexts[SignedModulator::kNModTypesS][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."
@@ -134,7 +134,7 @@ const char *const WavePlug::modFuncSHelpTexts[SignedModulator::kNModTypesS][2] =
 	}
 };
 
-const char *const WavePlug::modFuncFHelpTexts[FunctionModulator::kNModTypesF][2] = {
+const char *const LostTechCore::modFuncFHelpTexts[FunctionModulator::kNModTypesF][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."
@@ -169,7 +169,7 @@ const char *const WavePlug::modFuncFHelpTexts[FunctionModulator::kNModTypesF][2]
 	}
 };
 
-const float WavePlug::initParamValues[kNumParams] = {
+const float LostTechCore::initParamValues[kNumParams] = {
 	0.1f, 0.8f, 0.05f, 0.75f, 0.783f, 0.217f, 0.00055f, 0.73f, 0.0f, 0.0f, 0.0f, 1.0f,
 	0.0f, 0.0f,
 	0.0f, 0.0f,
@@ -178,71 +178,71 @@ const float WavePlug::initParamValues[kNumParams] = {
 	0.0f, 0.0f
 };
 
-const WavePlug::funcfcp WavePlug::paramDisplayers[kNumParams] = {
-	&WavePlug::aIncLagDisplayer,
-	&WavePlug::aDecLagDisplayer,
-	&WavePlug::gateLevelDisplayer,
-	&WavePlug::gateLevelDisplayer,
-	&WavePlug::trigLevelDisplayer,
-	&WavePlug::trigLevelDisplayer,
-	&WavePlug::fMinMaxDisplayer,
-	&WavePlug::fMinMaxDisplayer,
-	&WavePlug::fwLagDisplayer,
-	&WavePlug::fwLagDisplayer,
-	&WavePlug::onOffDisplayer,
-	&WavePlug::onOffDisplayer,
+const LostTechCore::funcfcp LostTechCore::paramDisplayers[kNumParams] = {
+	&LostTechCore::aIncLagDisplayer,
+	&LostTechCore::aDecLagDisplayer,
+	&LostTechCore::gateLevelDisplayer,
+	&LostTechCore::gateLevelDisplayer,
+	&LostTechCore::trigLevelDisplayer,
+	&LostTechCore::trigLevelDisplayer,
+	&LostTechCore::fMinMaxDisplayer,
+	&LostTechCore::fMinMaxDisplayer,
+	&LostTechCore::fwLagDisplayer,
+	&LostTechCore::fwLagDisplayer,
+	&LostTechCore::onOffDisplayer,
+	&LostTechCore::onOffDisplayer,
 	
-	&WavePlug::usignModTypeDisplayer,
-	&WavePlug::pcntDisplayer,
+	&LostTechCore::usignModTypeDisplayer,
+	&LostTechCore::pcntDisplayer,
 	
-	&WavePlug::usignModTypeDisplayer,
-	&WavePlug::pcntDisplayer,
+	&LostTechCore::usignModTypeDisplayer,
+	&LostTechCore::pcntDisplayer,
 	
-	&WavePlug::funcModTypeDisplayer,
-	&WavePlug::pcntDisplayer,
+	&LostTechCore::funcModTypeDisplayer,
+	&LostTechCore::pcntDisplayer,
 	
-	&WavePlug::aOffsetDisplayer,
-	&WavePlug::aGainDisplayer,
-	&WavePlug::fOffsetDisplayer,
-	&WavePlug::fGainDisplayer,
-	&WavePlug::oversamplingDisplayer,
-	&WavePlug::smoothingWinDisplayer,
+	&LostTechCore::aOffsetDisplayer,
+	&LostTechCore::aGainDisplayer,
+	&LostTechCore::fOffsetDisplayer,
+	&LostTechCore::fGainDisplayer,
+	&LostTechCore::oversamplingDisplayer,
+	&LostTechCore::smoothingWinDisplayer,
 	
-	&WavePlug::signModTypeDisplayer,
-	&WavePlug::pcntDisplayer
+	&LostTechCore::signModTypeDisplayer,
+	&LostTechCore::pcntDisplayer
 };
 
-const WavePlug::methodf WavePlug::paramSetters[kNumParams] = {
-	&WavePlug::aAIWSetter,
-	&WavePlug::aADWSetter,
-	&WavePlug::aAGLSetter,
-	&WavePlug::aSGLSetter,
-	&WavePlug::aFHTSetter,
-	&WavePlug::aFLTSetter,
-	&WavePlug::aFMinSetter,
-	&WavePlug::aFMaxSetter,
-	&WavePlug::aFWSetter,
-	&WavePlug::aWWSetter,
-	&WavePlug::aITSetter,
-	&WavePlug::aWISetter,
+const LostTechCore::methodf LostTechCore::paramSetters[kNumParams] = {
+	&LostTechCore::aAIWSetter,
+	&LostTechCore::aADWSetter,
+	&LostTechCore::aAGLSetter,
+	&LostTechCore::aSGLSetter,
+	&LostTechCore::aFHTSetter,
+	&LostTechCore::aFLTSetter,
+	&LostTechCore::aFMinSetter,
+	&LostTechCore::aFMaxSetter,
+	&LostTechCore::aFWSetter,
+	&LostTechCore::aWWSetter,
+	&LostTechCore::aITSetter,
+	&LostTechCore::aWISetter,
 	
-	&WavePlug::mAModSetter,
-	&WavePlug::mAMixSetter,
+	&LostTechCore::mAModSetter,
+	&LostTechCore::mAMixSetter,
 	
-	&WavePlug::mFModSetter,
-	&WavePlug::mFMixSetter,
+	&LostTechCore::mFModSetter,
+	&LostTechCore::mFMixSetter,
 	
-	&WavePlug::mWModSetter,
-	&WavePlug::mWMixSetter,
+	&LostTechCore::mWModSetter,
+	&LostTechCore::mWMixSetter,
 	
-	&WavePlug::sAOffSetter,
-	&WavePlug::sAGainSetter,
-	&WavePlug::sFOffSetter,
-	&WavePlug::sFGainSetter,
-	&WavePlug::sOverSetter,
-	&WavePlug::sWindSetter,
+	&LostTechCore::sAOffSetter,
+	&LostTechCore::sAGainSetter,
+	&LostTechCore::sFOffSetter,
+	&LostTechCore::sFGainSetter,
+	&LostTechCore::sOverSetter,
+	&LostTechCore::sWindSetter,
 	
-	&WavePlug::mOModSetter,
-	&WavePlug::mOMixSetter
+	&LostTechCore::mOModSetter,
+	&LostTechCore::mOMixSetter
 };
 
