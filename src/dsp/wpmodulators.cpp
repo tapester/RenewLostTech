@@ -22,15 +22,15 @@ DEALINGS IN THE SOFTWARE.
 
 #include <cmath>
 
-const char *const modTypeUNames[kNModTypesU] = {
+const char *const UnsignedModulator::modTypeUNames[UnsignedModulator::kNModTypesU] = {
 	"Add", "MinDiff", "MaxDiff", "Fine", "Mult", "Dist", "Top", "Pong"
 };
 
-const char *const modTypeSNames[kNModTypesS] = {
+const char *const SignedModulator::modTypeSNames[SignedModulator::kNModTypesS] = {
 	"Add", "Diff", "Mult", "Dist", "Top", "Pong"
 };
 
-const char *const modTypeFNames[kNModTypesF] = {
+const char *const FunctionModulator::modTypeFNames[FunctionModulator::kNModTypesF] = {
 	"Add", "Diff", "Mult", "Dist", "Top", "Comp", "Conv", "Pong"
 };
 
@@ -64,7 +64,7 @@ inline void Modulator::updateLFO() {
 
 
 // ---<<< UnsignedModulator >>>---
-const UnsignedModulator::fmethod UnsignedModulator::modFunctions[kNModTypesU] = {
+const UnsignedModulator::fmethod UnsignedModulator::modFunctions[UnsignedModulator::kNModTypesU] = {
 	&UnsignedModulator::computeAdd,
 	&UnsignedModulator::computeMinDiff,
 	&UnsignedModulator::computeMaxDiff,
@@ -86,10 +86,10 @@ void UnsignedModulator::initialize(
 	fineBase = base;
 	invLogFineBase = 1.0f / std::log(base);
 	
-	setModulation(kModTypeUAdd);
+	setModulation(UnsignedModulator::kModTypeUAdd);
 }
 
-void UnsignedModulator::setModulation(ModulationTypeU mt) {
+void UnsignedModulator::setModulation(UnsignedModulator::ModulationTypeU mt) {
 	modType = mt;
 	computeValue = modFunctions[modType];
 }
@@ -146,7 +146,7 @@ float UnsignedModulator::computePong() {
 
 
 // ---<<< SignedModulator >>>---
-const SignedModulator::fmethod SignedModulator::modFunctions[kNModTypesS] = {
+const SignedModulator::fmethod SignedModulator::modFunctions[SignedModulator::kNModTypesS] = {
 	&SignedModulator::computeAdd,
 	&SignedModulator::computeDiff,
 	&SignedModulator::computeMult,
@@ -161,14 +161,14 @@ void SignedModulator::initialize(RealFunction *input1, RealFunction *input2, flo
 	in1 = input1;
 	in2 = input2;
 	
-	setModulation(kModTypeSAdd);
+	setModulation(SignedModulator::SignedModulator::kModTypeSAdd);
 }
 
-void SignedModulator::setModulation(ModulationTypeS mt) {
+void SignedModulator::setModulation(SignedModulator::ModulationTypeS mt) {
 	modType = mt;
 	
 	computeValue = modFunctions[modType];
-	if (modType == kModTypeSAdd & mix2 == 0.0f)
+	if (modType == SignedModulator::kModTypeSAdd & mix2 == 0.0f)
 		computeValue = &SignedModulator::computeIdentity;
 }
 
@@ -176,7 +176,7 @@ void SignedModulator::setMix(float mx) {
 	Modulator::setMix(mx);
 	
 	computeValue = modFunctions[modType];
-	if (modType == kModTypeSAdd & mix2 == 0.0f)
+	if (modType == SignedModulator::kModTypeSAdd & mix2 == 0.0f)
 		computeValue = &SignedModulator::computeIdentity;
 }
 
@@ -216,7 +216,7 @@ float SignedModulator::computePong() {
 
 
 // ---<<< FunctionModulator >>>---
-const FunctionModulator::fmethodf FunctionModulator::modFunctions[kNModTypesF] = {
+const FunctionModulator::fmethodf FunctionModulator::modFunctions[FunctionModulator::kNModTypesF] = {
 	&FunctionModulator::computeAdd,
 	&FunctionModulator::computeDiff,
 	&FunctionModulator::computeMult,
@@ -238,14 +238,14 @@ void FunctionModulator::initialize(FunctionFunction *input1, FunctionFunction *i
 	hSizeF = 2.0f;
 	hDelta = 1.0f;
 	
-	setModulation(kModTypeFAdd);
+	setModulation(FunctionModulator::FunctionModulator::kModTypeFAdd);
 }
 
-void FunctionModulator::setModulation(ModulationTypeF mt) {
+void FunctionModulator::setModulation(FunctionModulator::ModulationTypeF mt) {
 	modType = mt;
 	
 	computeValue = modFunctions[modType];
-	if (modType == kModTypeFAdd & mix2 == 0.0f)
+	if (modType == FunctionModulator::kModTypeFAdd & mix2 == 0.0f)
 		computeValue = &FunctionModulator::computeIdentity;
 }
 
@@ -257,7 +257,7 @@ void FunctionModulator::setMix(float mx) {
 	hSizeI = (int) hSizeF;
 	
 	computeValue = modFunctions[modType];
-	if (modType == kModTypeFAdd & mix2 == 0.0f)
+	if (modType == FunctionModulator::kModTypeFAdd & mix2 == 0.0f)
 		computeValue = &FunctionModulator::computeIdentity;
 }
 

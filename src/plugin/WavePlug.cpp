@@ -66,8 +66,8 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
 #define F_LAG_T(v) (std::pow(std::log10(9.0f*(v) + 1.0f), 0.4f))
 #define W_LAG_T(v) F_LAG_T(v)
 #define BOOL_T(v) ((v) > 0.5f)
-#define U_MOD_TYPE_T(v) ((ModulationTypeU) (unsigned int) (0.999f*((v)*kNModTypesU)))
-#define F_MOD_TYPE_T(v) ((ModulationTypeF) (unsigned int) (0.999f*((v)*kNModTypesF)))
+#define U_MOD_TYPE_T(v) ((UnsignedModulator::ModulationTypeU) (unsigned int) (0.999f*((v)*UnsignedModulator::kNModTypesU)))
+#define F_MOD_TYPE_T(v) ((FunctionModulator::ModulationTypeF) (unsigned int) (0.999f*((v)*FunctionModulator::kNModTypesF)))
 #define A_OFFSET_T(v) (2.0f*((v)-0.5f))
 #define A_GAIN_T(v) (((v) > 0.5f) \
                      ? ((((v) > 0.9999f)) ? 5000.0f : 1.0f / (2.0f*(1.0f - (v)))) \
@@ -80,7 +80,7 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
                      : 2.0f*(v))
 #define OVER_T(v) (1 + (int) (15.0f*(v)))
 #define WINDOW_T(v) ((int) (250.0f*(v)))
-#define S_MOD_TYPE_T(v) ((ModulationTypeS) (unsigned int) (0.999f*((v)*kNModTypesS)))
+#define S_MOD_TYPE_T(v) ((SignedModulator::ModulationTypeS) (unsigned int) (0.999f*((v)*SignedModulator::kNModTypesS)))
 
 #define M_LN2 0.69314718055994530942
 
@@ -157,15 +157,15 @@ void WavePlug::fwLagDisplayer(float value, char *text) {
 }
 
 void WavePlug::usignModTypeDisplayer(float value, char *text) {
-	std::strcpy(text, modTypeUNames[U_MOD_TYPE_T(value)]);
+	std::strcpy(text, UnsignedModulator::modTypeUNames[U_MOD_TYPE_T(value)]);
 }
 
 void WavePlug::signModTypeDisplayer(float value, char *text) {
-	std::strcpy(text, modTypeSNames[S_MOD_TYPE_T(value)]);
+	std::strcpy(text, SignedModulator::modTypeSNames[S_MOD_TYPE_T(value)]);
 }
 
 void WavePlug::funcModTypeDisplayer(float value, char *text) {
-	std::strcpy(text, modTypeFNames[F_MOD_TYPE_T(value)]);
+	std::strcpy(text, FunctionModulator::modTypeFNames[F_MOD_TYPE_T(value)]);
 }
 
 void WavePlug::aOffsetDisplayer(float value, char *text) {

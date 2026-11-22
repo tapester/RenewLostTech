@@ -60,9 +60,9 @@ private: // private static data members
 	static const char *const paramNames[kNumParams];
 	static const char *const paramLabels[kNumParams];
 	static const char *const initParamHelpTexts[kNumParams];
-	static const char *const modFuncUHelpTexts[kNModTypesU][2];
-	static const char *const modFuncSHelpTexts[kNModTypesS][2];
-	static const char *const modFuncFHelpTexts[kNModTypesF][2];
+	static const char *const modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2];
+	static const char *const modFuncSHelpTexts[SignedModulator::kNModTypesS][2];
+	static const char *const modFuncFHelpTexts[FunctionModulator::kNModTypesF][2];
 	
 	static const float initParamValues[kNumParams];
 	
