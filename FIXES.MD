@@ -41,7 +41,7 @@
 - **Problem:** Two instances at different rates overwrite each other. I ran it: A ran at 44.1 kHz, then B started at 96 kHz, and the global became 96000. When A processed again it still read 96000. A then uses the wrong rate for its limits and time constants. Different audio threads also write the globals without any lock.
 - **Fix:** Keep the rate in each plug-in instance and pass it to the analyzer, synthesizer and modulators instead of reading the globals.
 - **If we skip it:** Wrong sound, or a data race, if a host runs two projects at different rates in one process. This is rare.
--**IGNORED**
+- **FIXED**
 
 **6. The audio thread allocates and frees memory** (`WavePlug.cpp:694-697`, `:715-722`, `src/dsp/Synthesizer.cpp:57-90`, `src/dsp/BufferManager.cpp:76-135`)
 - **What this is:** The audio thread is the one that must finish each block in a few milliseconds. Memory allocation can wait on a system lock.

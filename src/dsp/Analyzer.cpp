@@ -23,7 +23,8 @@ DEALINGS IN THE SOFTWARE.
 #include <algorithm>
 #include <cmath>
 
-void Analyzer::initialize(int bufferSize) {
+void Analyzer::initialize(const SampleRate *sampleRate, int bufferSize) {
+	sr = sampleRate;
 	ampFunc.setValue(&amplitude);
 	freqFunc.setValue(&frequency);
 	
@@ -53,11 +54,11 @@ void Analyzer::reset(float a, float fHz) {
 	if (oldWave.empty())
 		return;
 	
-	aWeightModifier = WP_STD_SAMPLE_RATE / globalSampleRate;
-	maxWaveSize = std::min((int) (globalSampleRate/fMin + 0.5f) + 1, waveBufferSize);
+	aWeightModifier = WP_STD_SAMPLE_RATE / sr->rate;
+	maxWaveSize = std::min((int) (sr->rate/fMin + 0.5f) + 1, waveBufferSize);
 	
 	amplitude = a;
-	frequency = hzToUnsigned(fHz);
+	frequency = sr->hzToUnsigned(fHz);
 	
 	trigDisabled = true;
 	trigCount = 0;
@@ -93,13 +94,13 @@ void Analyzer::setADecWeight(float weight) {
 }
 
 void Analyzer::setFMin(float hz) {
-	fMin = std::min(hz, globalMaxFrequency);
-	maxWaveSize = std::min((int) (globalSampleRate/fMin + 0.5f) + 1, waveBufferSize);
+	fMin = std::min(hz, sr->maxFrequency);
+	maxWaveSize = std::min((int) (sr->rate/fMin + 0.5f) + 1, waveBufferSize);
 }
 
 void Analyzer::setFMax(float hz) {
-	fMax = std::min(hz, globalMaxFrequency);
-	minWaveSize = (int) (globalSampleRate/fMax + 0.5f) + 1;
+	fMax = std::min(hz, sr->maxFrequency);
+	minWaveSize = (int) (sr->rate/fMax + 0.5f) + 1;
 }
 
 void Analyzer::setTrigInverted(bool onOff) {
@@ -157,7 +158,7 @@ void Analyzer::updateFreqAndWave(float sample, float absample) {
 	detectPeak = trigInverted;
 	
 	// Compute frequency, with lag if that is turned on.
-	frequency += fWNew*(hzToUnsigned(globalSampleRate/(newWaveSize-1)) - frequency);
+	frequency += fWNew*(sr->hzToUnsigned(sr->rate/(newWaveSize-1)) - frequency);
 	
 	// Normalize the waveform.
 	// 1.0e-8f is added to values used as denominators to prevent DbZ problems.

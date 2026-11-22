@@ -75,8 +75,8 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
 #define A_GATE_LVL_T(v) ((std::pow(2.0f, 12.0f*(v)) - 1.0f)/4095.0f)
 #define S_GATE_LVL_T(v) A_GATE_LVL_T(v)
 #define TRIG_LVL_T(v) (3.0f*((v)-0.5f))
-#define F_MIN_T(v) ((globalMaxFrequency - 1.0f)*(std::pow(2.0f, 9.0f*(v)) - 1.0f)/511.0f + 1.0f)
-#define F_MAX_T(v) F_MIN_T(v)
+#define F_MIN_T(v, maxFreq) (((maxFreq) - 1.0f)*(std::pow(2.0f, 9.0f*(v)) - 1.0f)/511.0f + 1.0f)
+#define F_MAX_T(v, maxFreq) F_MIN_T(v, maxFreq)
 #define F_LAG_T(v) (std::pow(std::log10(9.0f*(v) + 1.0f), 0.4f))
 #define W_LAG_T(v) F_LAG_T(v)
 #define BOOL_T(v) ((v) > 0.5f)
@@ -176,7 +176,7 @@ void WavePlug::trigLevelDisplayer(float value, char *text) {
 }
 
 void WavePlug::fMinMaxDisplayer(float value, char *text) {
-	std::sprintf(text, "%1.2f", F_MIN_T(value));
+	std::sprintf(text, "%1.2f", F_MIN_T(value, globalMaxFrequency));
 }
 
 void WavePlug::fwLagDisplayer(float value, char *text) {
@@ -630,6 +630,7 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 				processingData.newParamValues[index] = processingData.paramValues[index];
 		}
 		
+		sampleRate.set(processingData.newSampleRate);
 		setGlobalSampleRate(processingData.newSampleRate);
 		
 		setBufferSizeMultiplier(processingData.bufferSizeMultiplier);
@@ -650,18 +651,22 @@ void WavePlug::doThreadSynchronizedDataExchange() {
 
 bool WavePlug::reinitialize() {
 	// Processing components.
-	ana1.initialize();
-	ana2.initialize();
+	ana1.initialize(&sampleRate);
+	ana2.initialize(&sampleRate);
 	modA1.initialize(ana1.getAmpFunction(), ana2.getAmpFunction());
 	modA2.initialize(ana2.getAmpFunction(), ana1.getAmpFunction());
-	modF1.initialize(ana1.getFreqFunction(), ana2.getFreqFunction(), hzToUnsigned(261.63f));
-	modF2.initialize(ana2.getFreqFunction(), ana1.getFreqFunction(), hzToUnsigned(261.63f));
+	modF1.initialize(ana1.getFreqFunction(), ana2.getFreqFunction(), sampleRate.hzToUnsigned(261.63f));
+	modF2.initialize(ana2.getFreqFunction(), ana1.getFreqFunction(), sampleRate.hzToUnsigned(261.63f));
 	modW1.initialize(ana1.getWaveFunction(), ana2.getWaveFunction());
 	modW2.initialize(ana2.getWaveFunction(), ana1.getWaveFunction());
-	syn1.initialize(&modA1, &modF1, &modW1);
-	syn2.initialize(&modA2, &modF2, &modW2);
+	syn1.initialize(&sampleRate, &modA1, &modF1, &modW1);
+	syn2.initialize(&sampleRate, &modA2, &modF2, &modW2);
 	modO1.initialize(syn1.getAudioFunction(), syn2.getAudioFunction());
 	modO2.initialize(syn2.getAudioFunction(), syn1.getAudioFunction());
+	modW1.setSampleRate(&sampleRate);
+	modW2.setSampleRate(&sampleRate);
+	modO1.setSampleRate(&sampleRate);
+	modO2.setSampleRate(&sampleRate);
 	
 	// Allocate the sample buffers.
 	setBufferSizeMultiplier(processingData.bufferSizeMultiplier);
@@ -707,8 +712,8 @@ int WavePlug::doParameterUpdates() {
 }
 
 void WavePlug::setBufferSizeMultiplier(int multiplier) {
-	int anaSize = (int) (multiplier * (WP_ANA_BUFFER_SIZE * globalSampleRate) / WP_STD_SAMPLE_RATE),
-			synSize = (int) (multiplier * (WP_SYN_BUFFER_SIZE * globalSampleRate) / WP_STD_SAMPLE_RATE);
+	int anaSize = (int) (multiplier * (WP_ANA_BUFFER_SIZE * sampleRate.rate) / WP_STD_SAMPLE_RATE),
+			synSize = (int) (multiplier * (WP_SYN_BUFFER_SIZE * sampleRate.rate) / WP_STD_SAMPLE_RATE);
 	
 	ana1.setBufferSize(anaSize);
 	ana2.setBufferSize(anaSize);
@@ -745,8 +750,8 @@ void WavePlug::aAGLSetter(float value) {anaE->setAmpGateLevel(A_GATE_LVL_T(value
 void WavePlug::aSGLSetter(float value) {anaE->setSampleGateLevel(S_GATE_LVL_T(value));}
 void WavePlug::aFHTSetter(float value) {anaE->setHighTrig(TRIG_LVL_T(value));}
 void WavePlug::aFLTSetter(float value) {anaE->setLowTrig(TRIG_LVL_T(value));}
-void WavePlug::aFMinSetter(float value) {anaE->setFMin(F_MIN_T(value));}
-void WavePlug::aFMaxSetter(float value) {anaE->setFMax(F_MAX_T(value));}
+void WavePlug::aFMinSetter(float value) {anaE->setFMin(F_MIN_T(value, sampleRate.maxFrequency));}
+void WavePlug::aFMaxSetter(float value) {anaE->setFMax(F_MAX_T(value, sampleRate.maxFrequency));}
 void WavePlug::aFWSetter(float value) {anaE->setFWeight(F_LAG_T(value));}
 void WavePlug::aWWSetter(float value) {anaE->setWWeight(W_LAG_T(value));}
 void WavePlug::aITSetter(float value) {anaE->setTrigInverted(BOOL_T(value));}

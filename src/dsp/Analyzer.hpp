@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 
 class Analyzer {
 private:
+	const SampleRate *sr;
 	RealFunction ampFunc, freqFunc;
 	FunctionFunction waveFunc;
 	
@@ -43,7 +44,7 @@ private:
 	
 public:
 	// Set defaults and allocate the waveform buffers.
-	void initialize(int bufferSize = 0);
+	void initialize(const SampleRate *sampleRate, int bufferSize = 0);
 	// Clear trigger history and restart analysis from the supplied signal estimate.
 	void reset(float a = 1.0e-8f, float fHz = 440.0f); // 440Hz = concert A.
 	

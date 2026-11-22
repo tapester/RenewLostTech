@@ -53,7 +53,7 @@ void Modulator::setMix(float mx) {
 	// Increase distortion depth exponentially across the normalized mix range.
 	mixDist = std::pow(2.0f, 4.0f*mx) - 1.0f;
 	lfoIncrement = (rateDependentLFO)
-	               ? (mx*WP_STD_SAMPLE_RATE)/(lfoDivisor*globalSampleRate)
+	               ? (mx*WP_STD_SAMPLE_RATE)/(lfoDivisor*sr->rate)
 	               : mx/lfoDivisor;
 }
 

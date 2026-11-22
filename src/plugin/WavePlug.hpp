@@ -106,6 +106,7 @@ public: // public static methods
 private: // private data members
 	// ---<<< Shared data                     >>>---
 	// Guards the shared data below between host, editor and audio threads.
+	SampleRate sampleRate; // This instance's rate; globalSampleRate is for display only.
 	CRITICAL_SECTION myCriticalSection;
 	
 	// ---<<< ALL ACCESS MUST BE SYNCHRONIZED >>>---
