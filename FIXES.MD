@@ -83,6 +83,7 @@
 - **Problem:** `process()` is commented out. So `procHandler`, the `procHandlers[]` table and the 8 functions `proc1In1Out` through `proc2In2OutB` never run. A grep shows the only use of `procHandler` is inside that comment.
 - **Fix:** Delete them, about −65 lines. A VST 2.4 host calls `processReplacing`. A very old host that calls `process` would get silence either way.
 - **If we skip it:** Readers have to understand twice as much audio code.
+- **FIXED:** The accumulating `procHandler` table and its 8 functions are deleted; `processReplacing` is the only audio path.
 
 **11. Checks in `resume()` that can never fire** (`WavePlug.cpp:526-557`)
 - **What this is:** `resume()` is meant to refuse to run if no input or output is connected.
