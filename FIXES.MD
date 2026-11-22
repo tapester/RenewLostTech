@@ -70,6 +70,7 @@
 - **Problem:** `lukka/get-cmake@latest` and `ilammy/msvc-dev-cmd@v1` can change without notice. The macOS job downloads pluginval from `releases/latest` and runs it with no checksum. There is no `permissions:` block. Windows CI configures "Visual Studio 17 2022", but the README and the preset use "Visual Studio 18 2026", so the documented build never runs in CI.
 - **Fix:** Pin the two actions to commit SHAs, add `permissions: contents: read`, and pin pluginval to a version and checksum. Make the Windows job use `cmake --preset windows-x64`, or change the README.
 - **If we skip it:** A changed action or tool can alter the shipped binaries, and a preset break goes unseen.
+- **PARTLY FIXED:** Actions are pinned to commit SHAs, `permissions: contents: read` is set, and the pluginval download is checked against a SHA-256. The Windows job still uses the Visual Studio 2022 generator on `windows-2022`; the README and preset use Visual Studio 2026.
 
 **9. Out-of-memory recovery code for buffers that never fail to allocate** (`src/dsp/BufferManager.cpp`/`.hpp`, `WavePlug.cpp:724-730`, `:743-746`, `:796-798`, `:815-833`, `Analyzer.cpp:79-111`, `Synthesizer.cpp:92-126`)
 - **What this is:** A home-made buffer tracker with its own list and lock. On top of it sit "if allocation fails, restore the old size, else go silent" paths.

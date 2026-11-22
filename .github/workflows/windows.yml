@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   windows:
     # Keep this pinned to the image that provides the VS 2022 generator.
@@ -12,15 +15,15 @@ jobs:
     # installation is available to CMake's generator discovery.
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up CMake
-        uses: lukka/get-cmake@v53
+        uses: lukka/get-cmake@a1a8216777d3cbbf5602c73b9ddd3e98257ecdc4 # v4.5.1
         with:
           cmakeVersion: 4.2.0
 
       - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         with:
           arch: x64
 
@@ -40,7 +43,7 @@ jobs:
           Copy-Item build-windows/Release/LostTech.dll dist/
           Copy-Item build-windows/Release/LostTechNoGUI.dll dist/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: LostTech-windows-x64
           path: dist/*.dll
