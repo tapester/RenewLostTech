@@ -111,6 +111,7 @@
 - **Problem:** I called every display function across the knob range. Only Freq Offset (both channels) overshoots, with "−22000.00" at the knob minimum. A host that allocates just the 8 characters VST allows overflows by a byte or two. Most hosts use bigger buffers.
 - **Fix:** Use `"%1.1f"` for that display, which gives "−22000.0".
 - **If we skip it:** A small overflow risk in strict hosts.
+- **FIXED:** Freq Offset now uses `%1.1f`; no knob display is longer than 8 characters.
 
 **14. The CMake fallback for other platforms cannot build** (`CMakeLists.txt:80-81`)
 - **What this is:** The `else()` branch builds the no-GUI plug-in for anything that is not Windows or Mac.
