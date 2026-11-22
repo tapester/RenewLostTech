@@ -53,22 +53,8 @@ public:
 	RealFunction *getFreqFunction() {return &freqFunc;}
 	FunctionFunction *getWaveFunction() {return &waveFunc;}
 	
-	int getBufferSize() {return waveBufferSize;}
-	// Replaces both waveform buffers; returns false if either allocation fails.
+	// Replaces both waveform buffers.
 	void setBufferSize(int bufferSize);
-	
-	float getAIncWeight() {return aIncW;}
-	float getADecWeight() {return aDecW;}
-	float getAmpGateLevel() {return ampGateLevel;}
-	float getSampleGateLevel() {return sampleGateLevel;}
-	float getFMin() {return fMin;}
-	float getFMax() {return fMax;}
-	float getHighTrig() {return fHighTrig;}
-	float getLowTrig() {return fLowTrig;}
-	float getFWeight() {return fW;}
-	float getWWeight() {return wW;}
-	bool getTrigInverted() {return trigInverted;}
-	bool getWInterpolation() {return waveFunc.getInterpolation();}
 	
 	void setAIncWeight(float weight);
 	void setADecWeight(float weight);

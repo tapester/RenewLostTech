@@ -192,7 +192,6 @@ public: // public methods
 	const char *getParamHelpText(int index);
 	
 	bool isOperational();
-	int getBufferSizeMultiplier();
 	
 	float getAmplitude(int channel, bool postmod = false);
 	float getFrequency(int channel, bool postmod = false);
