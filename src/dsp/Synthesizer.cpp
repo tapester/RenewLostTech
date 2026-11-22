@@ -27,9 +27,10 @@ DEALINGS IN THE SOFTWARE.
 #define WINDOWINDEX(x) (((x) + windowPositionsSize) % windowPositionsSize)
 
 void Synthesizer::initialize(
-	UnsignedModulator *inputA, UnsignedModulator *inputF, FunctionModulator *inputW,
+	const SampleRate *sampleRate, UnsignedModulator *inputA, UnsignedModulator *inputF, FunctionModulator *inputW,
 	int bufferSize)
 {
+	sr = sampleRate;
 	audioFunc.setValue(NULL);
 	
 	inA = inputA;
@@ -64,7 +65,7 @@ void Synthesizer::reset() {
 	
 	aValue = fValue = sampleFraction = 0.0f;
 	
-	windowSize = (int) ((smoothingWindow * globalSampleRate)/WP_STD_SAMPLE_RATE);
+	windowSize = (int) ((smoothingWindow * sr->rate)/WP_STD_SAMPLE_RATE);
 	
 	if (windowSize > 0) {
 		// NOTE: If windowSize isn't 0 then it must be at least 2 to allow the smoothing algorithm
@@ -133,7 +134,7 @@ void Synthesizer::fillBuffer() {
 // at least one sample slot and one window slot are freed before the method is called again.
 int Synthesizer::loadCycle(float a, float f) {
 	// Compute number of generated (nSamplesI) and fetched (nSamplesF) samples.
-	float nSamplesF = globalSampleRate/unsignedToHz(f) + sampleFraction;
+	float nSamplesF = sr->rate/sr->unsignedToHz(f) + sampleFraction;
 	sampleFraction = std::modf(nSamplesF, &nSamplesF); // Isolate and store fractional sample.
 	
 	int nSamplesI = (int) nSamplesF;

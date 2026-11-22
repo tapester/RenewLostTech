@@ -30,6 +30,7 @@ DEALINGS IN THE SOFTWARE.
 
 class Synthesizer {
 private:
+	const SampleRate *sr;
 	RealFunction audioFunc;
 	
 	UnsignedModulator *inA, *inF;
@@ -48,7 +49,7 @@ private:
 public:
 	// Wire the modulators, then create the output and smoothing buffers.
 	void initialize(
-		UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
+		const SampleRate *sampleRate, UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
 		FunctionModulator *inputW = NULL, int bufferSize = 0);
 	void reset();
 	

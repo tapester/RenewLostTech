@@ -74,8 +74,10 @@ class Modulator {
 protected:
 	float mix1, mix2, mixDist, saw, tri, lfoIncrement, lfoDivisor;
 	bool rateDependentLFO;
+	const SampleRate *sr; // Needed only when rateDependentLFO is set.
 	
 public:
+	void setSampleRate(const SampleRate *sampleRate) {sr = sampleRate;}
 	// lfoRateDependent selects whether the LFO rate follows the host sample rate.
 	void initialize(float lfoDiv, bool lfoRateDependent);
 	

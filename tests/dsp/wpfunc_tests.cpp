@@ -91,6 +91,18 @@ int main() {
 	require(nearlyEqual(globalMinPeriodLength, initialMinPeriod),
 	        "globalMinPeriodLength should restore previous value after rate change");
 
+	// Two instances at different rates must not affect each other.
+	SampleRate a, b;
+	a.set(44100.0f);
+	b.set(96000.0f);
+	require(nearlyEqual(a.rate, 44100.0f) && nearlyEqual(b.rate, 96000.0f),
+	        "SampleRate objects should keep their own rate");
+	require(nearlyEqual(a.minPeriodLength, 1.0f / 22000.0f) && nearlyEqual(b.maxFrequency, 22000.0f),
+	        "SampleRate objects should derive their own limits");
+	require(nearlyEqual(a.hzToUnsigned(440.0f), 440.0f / 22000.0f) &&
+	        nearlyEqual(a.unsignedToHz(0.0f), 1.0f),
+	        "SampleRate hz conversions should match the free functions");
+
 	// Test modulo with negative and positive values
 	int testModulo[] = {-1, 0, 1, 7, 8, 9, -256, 256};
 	for (int i : testModulo) {
