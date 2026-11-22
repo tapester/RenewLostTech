@@ -182,7 +182,7 @@ void WavePlug::aGainDisplayer(float value, char *text) {
 
 void WavePlug::fOffsetDisplayer(float value, char *text) {
 	float value2 = F_OFFSET_T(value);
-	std::sprintf(text, "%1.2f", globalMaxFrequency*value2);
+	std::sprintf(text, "%1.1f", globalMaxFrequency*value2);
 }
 
 void WavePlug::fGainDisplayer(float value, char *text) {
