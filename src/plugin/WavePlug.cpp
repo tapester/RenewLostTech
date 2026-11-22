@@ -99,19 +99,6 @@ struct ScopedFtz {};  // No denormal control available on this architecture.
 #define M_LN2 0.69314718055994530942
 
 // Processing handlers.
-const WavePlug::method4fpi WavePlug::procHandlers[9] = {
-	&WavePlug::proc1In1Out,
-	&WavePlug::proc1In1OutB,
-	&WavePlug::proc1In2Out,
-	&WavePlug::proc1In2OutB,
-	&WavePlug::proc2In1Out,
-	&WavePlug::proc2In1OutB,
-	&WavePlug::proc2In2Out,
-	&WavePlug::proc2In2OutB,
-	
-	&WavePlug::procDoNothing // Fallback handler for error states.
-};
-
 const WavePlug::method4fpi WavePlug::procRHandlers[9] = {
 	&WavePlug::procR1In1Out,
 	&WavePlug::procR1In1OutB,
@@ -775,7 +762,6 @@ void WavePlug::mOMixSetter(float value) {modOE->setMix(value);}
 // Processing handlers.
 void WavePlug::setProcHandlers() {
 	if (!processingData.operational) {
-		procHandler = procHandlers[8];
 		procRHandler = procRHandlers[8];
 		return;
 	}
@@ -815,84 +801,7 @@ void WavePlug::setProcHandlers() {
 	if (processingData.bypassedFlag)
 		handlerIndex += 1;
 	
-	procHandler = procHandlers[handlerIndex];
 	procRHandler = procRHandlers[handlerIndex];
-}
-
-void WavePlug::proc1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in0++);
-		*out0++ += modO1.getValue();
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in0);
-		*out0++ += *in0++;
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc1In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in0++);
-		*out0++ += modO1.getValue();
-		*out1++ += modO2.getValue();
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc1In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in0);
-		*out0++ += *in0;
-		*out1++ += *in0++;
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc2In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0++);
-		ana2.addSample(*in1++);
-		*out0++ += modO1.getValue();
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc2In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in1++);
-		*out0++ += *in0++;
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc2In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0++);
-		ana2.addSample(*in1++);
-		*out0++ += modO1.getValue();
-		*out1++ += modO2.getValue();
-		syn1.tick(); syn2.tick();
-	}
-}
-
-void WavePlug::proc2In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {
-	while (--sampleFrames >= 0) {
-		ana1.addSample(*in0);
-		ana2.addSample(*in1);
-		*out0++ += *in0++;
-		*out1++ += *in1++;
-		syn1.tick(); syn2.tick();
-	}
 }
 
 void WavePlug::procR1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {

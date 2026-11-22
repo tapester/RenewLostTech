@@ -71,7 +71,7 @@ private: // private static data members
 	static const methodf paramSetters[kNumParams];
 	
 	// Processing handlers.
-	static const method4fpi procHandlers[9], procRHandlers[9];
+	static const method4fpi procRHandlers[9];
 	
 public: // public static methods
 	// Displayers.
@@ -149,7 +149,7 @@ private: // private data members
 	
 	// Setter and processing handler state.
 	int editMode;
-	method4fpi procHandler, procRHandler;
+	method4fpi procRHandler;
 	int in0Index, in1Index, out0Index, out1Index;
 	
 public: // public methods
@@ -185,7 +185,6 @@ public: // public methods
 	virtual bool setBypass(bool onOff) override;
 	virtual void suspend() override;
 	virtual void resume() override;
-	//virtual void process(float **inputs, float **outputs, VstInt32 sampleFrames) override;
 	virtual void processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames) override;
 	
 	// Custom.
@@ -248,15 +247,6 @@ private: // private methods
 	void setProcHandlers();
 	
 	void procDoNothing(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {}
-	
-	void proc1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
 	
 	void procR1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
 	void procR1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
