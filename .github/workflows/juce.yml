@@ -1,0 +1,68 @@
+name: JUCE build (VST3 and CLAP)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  juce:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            pluginval_zip: pluginval_Linux.zip
+            pluginval_sha256: 6c716ad5aed22affa46eb6af626c33574b6b3806bd5d3f792e4f5f57a9ca0cad
+            pluginval_exe: ./pluginval
+          - os: windows-latest
+            pluginval_zip: pluginval_Windows.zip
+            pluginval_sha256: 27fd7364486a87b9ae36235eba0daa171075567b921eaf2446db4237c5411574
+            pluginval_exe: ./pluginval.exe
+          - os: macos-latest
+            pluginval_zip: pluginval_macOS.zip
+            pluginval_sha256: 904c077aabedaee9feaae2cb3fb91aeff0b0078c162d7113cd29ac8677485c05
+            pluginval_exe: ./pluginval.app/Contents/MacOS/pluginval
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install JUCE's Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxext-dev libxi-dev libxrender-dev libxcomposite-dev libxfixes-dev \
+            libfreetype-dev libfontconfig1-dev libgl-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build-juce -DLOSTTECH_JUCE=ON -DCMAKE_BUILD_TYPE=Release \
+            ${{ runner.os == 'macOS' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0' || '' }}
+
+      - name: Build VST3 and CLAP
+        run: cmake --build build-juce --config Release --parallel --target LostTechJUCE_VST3 LostTechJUCE_CLAP
+
+      - name: Validate the VST3 with pluginval
+        run: |
+          mkdir pluginval && cd pluginval
+          curl -sSL -o pluginval.zip \
+            "https://github.com/Tracktion/pluginval/releases/download/v1.0.0/${{ matrix.pluginval_zip }}"
+          [ "$(cmake -E sha256sum pluginval.zip | cut -d' ' -f1)" = "${{ matrix.pluginval_sha256 }}" ]
+          cmake -E tar xf pluginval.zip
+          chmod +x "${{ matrix.pluginval_exe }}" || true
+          "${{ matrix.pluginval_exe }}" --skip-gui-tests --strictness-level 5 \
+            --validate "../build-juce/juce/LostTechJUCE_artefacts/Release/VST3/Lost Technology.vst3"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LostTech-juce-${{ runner.os }}
+          path: |
+            build-juce/juce/LostTechJUCE_artefacts/Release/VST3
+            build-juce/juce/LostTechJUCE_artefacts/Release/CLAP

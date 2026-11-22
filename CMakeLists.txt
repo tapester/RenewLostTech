@@ -190,6 +190,14 @@ if(BUILD_TESTING)
 endif()
 
 # ---------------------------------------------------------------------------
+# JUCE build (VST3 and CLAP). Off by default so the VST 2 build stays untouched.
+# ---------------------------------------------------------------------------
+option(LOSTTECH_JUCE "Build the JUCE (VST3/CLAP) plug-in" OFF)
+if(LOSTTECH_JUCE)
+    add_subdirectory(juce)
+endif()
+
+# ---------------------------------------------------------------------------
 # pluginval (validation / debugging). Optional: only active on Windows if the exe exists.
 # Adds CTest entries for the GUI and no-GUI plug-ins:
 #   ctest --test-dir build-win64 -C Release --output-on-failure -R pluginval
