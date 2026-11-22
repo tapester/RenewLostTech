@@ -116,12 +116,14 @@
 - **Problem:** The SDK header defines `VSTCALLBACK` as `__cdecl` under GCC (`aeffect.h:39`), so it fails with compile errors on Linux. I hit those errors. The README lists only Windows and macOS.
 - **Fix:** Delete the two lines.
 - **If we skip it:** A branch that looks supported and is not.
+- **FIXED:** The fallback branch is deleted; other platforms configure with only the DSP tests.
 
 **15. CMake 4.2 is required more broadly than needed** (`CMakeLists.txt:1`, `CMakePresets.json:3-6`)
 - **What this is:** The project refuses to configure on any CMake older than 4.2.
 - **Problem:** I tried CMake 3.28. As shipped it refuses to configure. With the minimum lowered to 3.20 it configures fine. Only the Visual Studio 2026 generator in the Windows preset needs 4.2.
 - **Fix:** Set `cmake_minimum_required(VERSION 3.20)` and keep 4.2 only for the Windows preset.
 - **If we skip it:** People with older CMake are blocked for no reason.
+- **FIXED:** `cmake_minimum_required` and the presets file need 3.20; only the Windows preset needs 4.2 (README says so).
 
 **16. The most extreme patch is CPU heavy** (`Synthesizer.cpp:189-199`, `wpmodulators.cpp:299-316`)
 - **What this is:** Oversampling and the "Conv" wave mode multiply each other.
