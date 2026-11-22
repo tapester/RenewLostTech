@@ -710,7 +710,13 @@ void WavePlug::sAOffSetter(float value) {synE->setAOffset(A_OFFSET_T(value));}
 void WavePlug::sAGainSetter(float value) {synE->setAGain(A_GAIN_T(value));}
 void WavePlug::sFOffSetter(float value) {synE->setFOffset(F_OFFSET_T(value));}
 void WavePlug::sFGainSetter(float value) {synE->setFGain(F_GAIN_T(value));}
-void WavePlug::sOverSetter(float value) {synE->setOversamplingMultiplier(OVER_T(value));}
+// Above 44.1 kHz the host already supplies more samples per second, so scale the oversampling
+// down by the same factor to keep the CPU load of the worst patch bounded. The knob text still
+// shows the nominal value. shortcut: integer truncation, so 2x at 88.2 kHz becomes 1x.
+void WavePlug::sOverSetter(float value) {
+	float scale = std::min(1.0f, WP_STD_SAMPLE_RATE / sampleRate.rate);
+	synE->setOversamplingMultiplier(std::max(1, (int) (OVER_T(value) * scale)));
+}
 void WavePlug::sWindSetter(float value) {synE->setSmoothingWindow(WINDOW_T(value));}
 void WavePlug::mOModSetter(float value) {modOE->setModulation(S_MOD_TYPE_T(value));}
 void WavePlug::mOMixSetter(float value) {modOE->setMix(value);}

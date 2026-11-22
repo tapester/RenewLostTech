@@ -140,6 +140,7 @@
 
 - **Fix:** Nothing is needed unless users hit it. If they do, cap oversampling at high rates, for example by scaling `OVER_T` by 44100 divided by the sample rate.
 - **If we skip it:** That patch cannot run in real time at 192 kHz.
+- **FIXED:** Oversampling is scaled by 44100 divided by the sample rate above 44.1 kHz (never below 1x). Worst patch, measured here: 89% to 54% of one core at 96 kHz, 246% to 46% at 192 kHz. The sound at rates above 44.1 kHz changes (less oversampling); 44.1 kHz and lower are unchanged.
 
 I left out 4 smaller points: the version number is repeated in three places (CMake, `WavePlug.hpp:36-44`, README), exceptions are caught by value, `Synthesizer::reset()` clears playback state whenever the Smoothing knob moves, and the dummy "Version" parameter.
 
