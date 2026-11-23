@@ -27,19 +27,3 @@ float globalMaxFrequency = sampleRateToMaxFreq(WP_STD_SAMPLE_RATE);
 
 float globalMinPeriodLength = 1.0f / globalMaxFrequency;
 
-// f must point to a buffer containing fSizePlus1 samples.
-// The last sample in the buffer (at offset (fSizePlus1 - 1))
-// must be the first sample of the next waveform.
-/*void FunctionFunction::setFunction(int fSizePlus1, float *f) {
-	fSize = (unsigned int) (fSizePlus1 - 1);
-	fSizeCoefficient = 0.5f * fSize;
-	function = f;
-}
-
-float FunctionFunction::getValue(float x) {
-	float sampleIndexF;
-	float sampleWeight = std::modf(fSizeCoefficient * (x + 3.0f), &sampleIndexF);
-	float *sample = function + (unsigned int) sampleIndexF % fSize;
-	
-	return *sample + sampleWeight * (*(sample + interpolation) - *sample);
-}*/

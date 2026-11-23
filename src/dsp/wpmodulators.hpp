@@ -23,59 +23,14 @@ DEALINGS IN THE SOFTWARE.
 
 #include "wpfunc.hpp"
 
-// TODO: Move these enums and arrays inside the Modulator subclasses.
-// Modulator modes for unsigned amplitude/frequency control signals.
-enum ModulationTypeU {
-	kModTypeUAdd,
-	kModTypeUMinDiff,
-	kModTypeUMaxDiff,
-	kModTypeUFine,
-	kModTypeUMult,
-	kModTypeUDist,
-	kModTypeUTop,
-	kModTypeUPong,
-	
-	kNModTypesU
-};
-
-extern const char *const modTypeUNames[kNModTypesU];
-
-// Modulator modes for signed audio output signals.
-enum ModulationTypeS {
-	kModTypeSAdd,
-	kModTypeSDiff,
-	kModTypeSMult,
-	kModTypeSDist,
-	kModTypeSTop,
-	kModTypeSPong,
-	
-	kNModTypesS
-};
-
-extern const char *const modTypeSNames[kNModTypesS];
-
-// Modulator modes that combine two periodic waveform functions.
-enum ModulationTypeF {
-	kModTypeFAdd,
-	kModTypeFDiff,
-	kModTypeFMult,
-	kModTypeFDist,
-	kModTypeFTop,
-	kModTypeFComp,
-	kModTypeFConv,
-	kModTypeFPong,
-	
-	kNModTypesF
-};
-
-extern const char *const modTypeFNames[kNModTypesF];
-
 class Modulator {
 protected:
 	float mix1, mix2, mixDist, saw, tri, lfoIncrement, lfoDivisor;
 	bool rateDependentLFO;
+	const SampleRate *sr; // Needed only when rateDependentLFO is set.
 	
 public:
+	void setSampleRate(const SampleRate *sampleRate) {sr = sampleRate;}
 	// lfoRateDependent selects whether the LFO rate follows the host sample rate.
 	void initialize(float lfoDiv, bool lfoRateDependent);
 	
@@ -91,6 +46,10 @@ protected:
 };
 
 class UnsignedModulator : public Modulator {
+public:
+	enum ModulationTypeU { kModTypeUAdd, kModTypeUMinDiff, kModTypeUMaxDiff, kModTypeUFine, kModTypeUMult, kModTypeUDist, kModTypeUTop, kModTypeUPong, kNModTypesU };
+	static const char *const modTypeUNames[kNModTypesU];
+
 private:
 	typedef float (UnsignedModulator::*fmethod)();
 	static const fmethod modFunctions[kNModTypesU];
@@ -127,6 +86,10 @@ private:
 };
 
 class SignedModulator : public Modulator {
+public:
+	enum ModulationTypeS { kModTypeSAdd, kModTypeSDiff, kModTypeSMult, kModTypeSDist, kModTypeSTop, kModTypeSPong, kNModTypesS };
+	static const char *const modTypeSNames[kNModTypesS];
+
 private:
 	typedef float (SignedModulator::*fmethod)();
 	static const fmethod modFunctions[kNModTypesS];
@@ -162,6 +125,10 @@ private:
 };
 
 class FunctionModulator : public Modulator {
+public:
+	enum ModulationTypeF { kModTypeFAdd, kModTypeFDiff, kModTypeFMult, kModTypeFDist, kModTypeFTop, kModTypeFComp, kModTypeFConv, kModTypeFPong, kNModTypesF };
+	static const char *const modTypeFNames[kNModTypesF];
+
 private:
 	typedef float (FunctionModulator::*fmethodf)(float);
 	static const fmethodf modFunctions[kNModTypesF];

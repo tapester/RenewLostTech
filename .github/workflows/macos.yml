@@ -5,12 +5,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   macos:
     # macos-latest is Apple Silicon (arm64).
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Configure (universal binary arm64 + x86_64)
         run: |
@@ -58,19 +61,25 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent stage/LostTechNoGUI.vst dist/LostTechNoGUI-macos.zip
           ls -la dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: LostTechNoGUI-macos
           path: |
             dist/LostTechNoGUI-macos.dmg
             dist/LostTechNoGUI-macos.zip
 
-      # Optional: needs a pluginval build that can load VST 2 plug-ins.
-      - name: Validate with pluginval
-        continue-on-error: true
+      # Validate with pluginval (fixed version with checksum)
+      - name: Download and validate pluginval
         run: |
           curl -sSL -o pluginval.zip \
-            https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+            https://github.com/Tracktion/pluginval/releases/download/v1.0.0/pluginval_macOS.zip
+          echo "904c077aabedaee9feaae2cb3fb91aeff0b0078c162d7113cd29ac8677485c05  pluginval.zip" \
+            | shasum -a 256 -c -
           unzip -q pluginval.zip
+          ./pluginval.app/Contents/MacOS/pluginval --version
+
+      - name: Validate plug-in with pluginval
+        run: |
+          BUNDLE="${{ steps.bundle.outputs.path }}"
           ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --repeat 3 \
-            --validate-in-process "${{ steps.bundle.outputs.path }}"
+            --validate-in-process "$BUNDLE"

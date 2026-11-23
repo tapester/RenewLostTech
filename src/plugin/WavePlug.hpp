@@ -27,7 +27,6 @@ DEALINGS IN THE SOFTWARE.
 #include <windows.h>
 #endif
 #include "audioeffectx.h"
-#include "BufferManager.hpp"
 #include "Analyzer.hpp"
 #include "wpmodulators.hpp"
 #include "Synthesizer.hpp"
@@ -49,7 +48,7 @@ DEALINGS IN THE SOFTWARE.
 #define WP_ANA_BUFFER_SIZE 1250
 #define WP_SYN_BUFFER_SIZE 1250
 
-class WavePlug : public AudioEffectX, public BufferManager {
+class WavePlug : public AudioEffectX {
 public: // public typedefs
 	typedef void (*funcfcp)(float, char *);
 	
@@ -61,9 +60,9 @@ private: // private static data members
 	static const char *const paramNames[kNumParams];
 	static const char *const paramLabels[kNumParams];
 	static const char *const initParamHelpTexts[kNumParams];
-	static const char *const modFuncUHelpTexts[kNModTypesU][2];
-	static const char *const modFuncSHelpTexts[kNModTypesS][2];
-	static const char *const modFuncFHelpTexts[kNModTypesF][2];
+	static const char *const modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2];
+	static const char *const modFuncSHelpTexts[SignedModulator::kNModTypesS][2];
+	static const char *const modFuncFHelpTexts[FunctionModulator::kNModTypesF][2];
 	
 	static const float initParamValues[kNumParams];
 	
@@ -72,7 +71,7 @@ private: // private static data members
 	static const methodf paramSetters[kNumParams];
 	
 	// Processing handlers.
-	static const method4fpi procHandlers[9], procRHandlers[9];
+	static const method4fpi procRHandlers[9];
 	
 public: // public static methods
 	// Displayers.
@@ -106,6 +105,10 @@ public: // public static methods
 	
 private: // private data members
 	// ---<<< Shared data                     >>>---
+	// Guards the shared data below between host, editor and audio threads.
+	SampleRate sampleRate; // This instance's rate; globalSampleRate is for display only.
+	CRITICAL_SECTION myCriticalSection;
+	
 	// ---<<< ALL ACCESS MUST BE SYNCHRONIZED >>>---
 	
 	// NOTE: Mutable fields inherited from AudioEffectX also count as shared data.
@@ -146,7 +149,7 @@ private: // private data members
 	
 	// Setter and processing handler state.
 	int editMode;
-	method4fpi procHandler, procRHandler;
+	method4fpi procRHandler;
 	int in0Index, in1Index, out0Index, out1Index;
 	
 public: // public methods
@@ -182,7 +185,6 @@ public: // public methods
 	virtual bool setBypass(bool onOff) override;
 	virtual void suspend() override;
 	virtual void resume() override;
-	//virtual void process(float **inputs, float **outputs, VstInt32 sampleFrames) override;
 	virtual void processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames) override;
 	
 	// Custom.
@@ -190,7 +192,6 @@ public: // public methods
 	const char *getParamHelpText(int index);
 	
 	bool isOperational();
-	int getBufferSizeMultiplier();
 	
 	float getAmplitude(int channel, bool postmod = false);
 	float getFrequency(int channel, bool postmod = false);
@@ -205,7 +206,7 @@ private: // private methods
 	// Setters.
 	int doParameterUpdates();
 	
-	bool setBufferSizeMultiplier(int multiplier);
+	void setBufferSizeMultiplier(int multiplier);
 	
 	void setEditMode(int mode);
 	
@@ -245,15 +246,6 @@ private: // private methods
 	void setProcHandlers();
 	
 	void procDoNothing(float *in0, float *in1, float *out0, float *out1, int sampleFrames) {}
-	
-	void proc1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc1In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In2Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
-	void proc2In2OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
 	
 	void procR1In1Out(float *in0, float *in1, float *out0, float *out1, int sampleFrames);
 	void procR1In1OutB(float *in0, float *in1, float *out0, float *out1, int sampleFrames);

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.20)
 project(LostTech VERSION 0.2.6)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -25,8 +25,6 @@ endif()
 set(DSP_SOURCE_FILES
         src/dsp/Analyzer.cpp
         src/dsp/Analyzer.hpp
-        src/dsp/BufferManager.cpp
-        src/dsp/BufferManager.hpp
         src/dsp/Synthesizer.cpp
         src/dsp/Synthesizer.hpp
         src/dsp/wpfunc.cpp
@@ -77,9 +75,8 @@ if(WIN32)
 elseif(APPLE)
     # VST 2 on macOS is a bundle (.vst) containing a loadable module.
     add_library(LostTechNoGUI MODULE ${NOGUI_SOURCE_FILES})
-else()
-    add_library(LostTechNoGUI SHARED ${NOGUI_SOURCE_FILES})
 endif()
+# Other platforms get no plug-in target, only the DSP tests below.
 
 # ---------------------------------------------------------------------------
 # Convenience target used with the Debug configuration to build the GUI plug-in.
@@ -89,7 +86,10 @@ if(TARGET LostTech)
 endif()
 
 # Plug-in targets that exist on this platform.
-set(PLUGIN_TARGETS LostTechNoGUI)
+set(PLUGIN_TARGETS)
+if(TARGET LostTechNoGUI)
+    list(APPEND PLUGIN_TARGETS LostTechNoGUI)
+endif()
 if(TARGET LostTech)
     list(APPEND PLUGIN_TARGETS LostTech)
 endif()
@@ -131,7 +131,9 @@ endforeach()
 if(TARGET LostTech)
     target_link_libraries(LostTech PRIVATE VSTSDK2_4 vstgui)
 endif()
-target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
+if(TARGET LostTechNoGUI)
+    target_link_libraries(LostTechNoGUI PRIVATE VSTSDK2_4)
+endif()
 
 if(WIN32)
     # Link GUI system libraries.
@@ -206,10 +208,8 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
         string(TOLOWER ${PV_TARGET} PV_NAME)
 
         add_custom_target(validate_${PV_NAME}
-            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>"
-            DEPENDS ${PV_TARGET}
-            USES_TERMINAL
-            COMMENT "Validating ${PV_TARGET} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
 
         # The GUI variant opens its editor, so CTest needs an interactive desktop session.
         if(BUILD_TESTING)

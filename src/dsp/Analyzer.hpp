@@ -22,12 +22,12 @@ DEALINGS IN THE SOFTWARE.
 #define WP_ANALYZER_HPP
 
 #include "wpfunc.hpp"
-#include "BufferManager.hpp"
+
+#include <vector>
 
 class Analyzer {
 private:
-	BufferManager *bufferManager;
-	
+	const SampleRate *sr;
 	RealFunction ampFunc, freqFunc;
 	FunctionFunction waveFunc;
 	
@@ -35,7 +35,7 @@ private:
 	      fHighTrig, fLowTrig, fMin, fMax, fW, wW;
 	bool trigInverted;
 	
-	float *oldWave, *newWave;
+	std::vector<float> oldWave, newWave;
 	
 	SignCode endOfCycle;
 	bool trigDisabled, detectPeak;
@@ -43,8 +43,8 @@ private:
 	float aWeightModifier, aIncWNew, aDecWNew, fWNew, wWNew, amplitude, frequency, maxSample;
 	
 public:
-	// Bind the analyzer to its owner's buffer allocator and allocate its waveform buffers.
-	void initialize(BufferManager *bMan, int bufferSize = 0);
+	// Set defaults and allocate the waveform buffers.
+	void initialize(const SampleRate *sampleRate, int bufferSize = 0);
 	// Clear trigger history and restart analysis from the supplied signal estimate.
 	void reset(float a = 1.0e-8f, float fHz = 440.0f); // 440Hz = concert A.
 	
@@ -53,22 +53,8 @@ public:
 	RealFunction *getFreqFunction() {return &freqFunc;}
 	FunctionFunction *getWaveFunction() {return &waveFunc;}
 	
-	int getBufferSize() {return waveBufferSize;}
-	// Replaces both waveform buffers; returns false if either allocation fails.
-	bool setBufferSize(int bufferSize);
-	
-	float getAIncWeight() {return aIncW;}
-	float getADecWeight() {return aDecW;}
-	float getAmpGateLevel() {return ampGateLevel;}
-	float getSampleGateLevel() {return sampleGateLevel;}
-	float getFMin() {return fMin;}
-	float getFMax() {return fMax;}
-	float getHighTrig() {return fHighTrig;}
-	float getLowTrig() {return fLowTrig;}
-	float getFWeight() {return fW;}
-	float getWWeight() {return wW;}
-	bool getTrigInverted() {return trigInverted;}
-	bool getWInterpolation() {return waveFunc.getInterpolation();}
+	// Replaces both waveform buffers.
+	void setBufferSize(int bufferSize);
 	
 	void setAIncWeight(float weight);
 	void setADecWeight(float weight);

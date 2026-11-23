@@ -26,7 +26,10 @@ DEALINGS IN THE SOFTWARE.
 
 #define WP_STD_SAMPLE_RATE (44100.0f)
 
-// Shared sample-rate limits used to translate between Hz and normalized frequency.
+// Last sample rate set by any instance. Only for display strings (static displayers and the
+// editor) that have no instance to ask. The DSP uses each instance's own SampleRate.
+// shortcut: two instances at different rates can show each other's rate in the UI text,
+// move the displayers onto the instance if that matters.
 extern float globalSampleRate;
 
 extern float globalMaxFrequency;
@@ -35,22 +38,33 @@ extern float globalMinPeriodLength;
 
 #define WP_EXT_INLINE inline
 
-/*#ifndef WP_WPFUNC_CPP
-#define WP_EXT_INLINE extern inline
-#else
-#define WP_EXT_INLINE
-#endif*/
-
 WP_EXT_INLINE float sampleRateToMaxFreq(float sampleRate) {
 	return (sampleRate - 100.0f)/2.0f;
 }
 
-// Keep frequency normalization compatible with the 44.1 kHz reference range.
+// Sample rate of one plug-in instance and the limits derived from it. Each instance owns one
+// and hands a pointer to its analyzers, synthesizers and modulators.
+// Frequency normalization stays compatible with the 44.1 kHz reference range.
+struct SampleRate {
+	float rate = WP_STD_SAMPLE_RATE;
+	float maxFrequency = sampleRateToMaxFreq(WP_STD_SAMPLE_RATE);
+	float minPeriodLength = 1.0f / sampleRateToMaxFreq(WP_STD_SAMPLE_RATE);
+	
+	void set(float sampleRate) {
+		rate = sampleRate;
+		maxFrequency = std::min(sampleRateToMaxFreq(rate), sampleRateToMaxFreq(WP_STD_SAMPLE_RATE));
+		minPeriodLength = 1.0f / maxFrequency;
+	}
+	float hzToUnsigned(float hz) const {return hz * std::min(minPeriodLength, 1.0f);}
+	float unsignedToHz(float usigned) const {return std::max(usigned * maxFrequency, 1.0f);}
+};
+
 WP_EXT_INLINE void setGlobalSampleRate(float sampleRate) {
-	globalSampleRate = sampleRate;
-	globalMaxFrequency =
-		std::min(sampleRateToMaxFreq(globalSampleRate), sampleRateToMaxFreq(WP_STD_SAMPLE_RATE));
-	globalMinPeriodLength = 1.0f / globalMaxFrequency;
+	SampleRate s;
+	s.set(sampleRate);
+	globalSampleRate = s.rate;
+	globalMaxFrequency = s.maxFrequency;
+	globalMinPeriodLength = s.minPeriodLength;
 }
 
 WP_EXT_INLINE float hzToUnsigned(float hz) {
@@ -62,8 +76,6 @@ WP_EXT_INLINE float unsignedToHz(float usigned) {
 }
 
 WP_EXT_INLINE float clamp01(float x) {return std::max(0.0f, std::min(x, 1.0f));}
-
-WP_EXT_INLINE int modulo(int n, int d) {return ((n % d) + d) % d;}
 
 WP_EXT_INLINE float fade(float x) {
 	float x2 = x*x;

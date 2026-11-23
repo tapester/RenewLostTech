@@ -22,15 +22,15 @@ DEALINGS IN THE SOFTWARE.
 #define WP_SYNTHESIZER_HPP
 
 #include "wpfunc.hpp"
-#include "BufferManager.hpp"
 #include "wpmodulators.hpp"
+
+#include <vector>
 
 #define SAMPLEINC(x) ((x) % samplesSize)
 
 class Synthesizer {
 private:
-	BufferManager *bufferManager;
-	
+	const SampleRate *sr;
 	RealFunction audioFunc;
 	
 	UnsignedModulator *inA, *inF;
@@ -39,19 +39,17 @@ private:
 	float aOffset, aGain, fOffset, fGain;
 	int oversamplingMultiplier, smoothingWindow;
 	
-	float *samples;
-	int *windowPositions;
-	float *fadeBuffer;
+	std::vector<float> samples, fadeBuffer;
+	std::vector<int> windowPositions;
 	
 	int samplesSize, windowPositionsSize, windowSize,
 	    start, last, end, startWin, endWin, nWindows;
 	float aValue, fValue, oversamplingMultiplierF, sampleFraction;
 	
 public:
-	// Wire the modulators and allocator, then create the output and smoothing buffers.
+	// Wire the modulators, then create the output and smoothing buffers.
 	void initialize(
-		BufferManager *bMan,
-		UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
+		const SampleRate *sampleRate, UnsignedModulator *inputA = NULL, UnsignedModulator *inputF = NULL,
 		FunctionModulator *inputW = NULL, int bufferSize = 0);
 	void reset();
 	
@@ -61,8 +59,7 @@ public:
 	
 	RealFunction *getAudioFunction() {return &audioFunc;}
 	
-	int getBufferSize() {return samplesSize;}
-	bool setBufferSize(int bufferSize);
+	void setBufferSize(int bufferSize);
 	
 	float getAOffset() {return aOffset;}
 	float getAGain() {return aGain;}
@@ -83,7 +80,7 @@ public:
 		if (start == last)
 			fillBuffer();
 		start = SAMPLEINC(start+1);
-		audioFunc.setValue(samples + start);
+		audioFunc.setValue(samples.data() + start);
 	}
 	
 	float getAmplitude() {return aValue;}

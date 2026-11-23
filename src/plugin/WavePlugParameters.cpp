@@ -72,7 +72,7 @@ const char *const WavePlug::initParamHelpTexts[kNumParams] = {
 	""
 };
 
-const char *const WavePlug::modFuncUHelpTexts[kNModTypesU][2] = {
+const char *const WavePlug::modFuncUHelpTexts[UnsignedModulator::kNModTypesU][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."
@@ -107,7 +107,7 @@ const char *const WavePlug::modFuncUHelpTexts[kNModTypesU][2] = {
 	}
 };
 
-const char *const WavePlug::modFuncSHelpTexts[kNModTypesS][2] = {
+const char *const WavePlug::modFuncSHelpTexts[SignedModulator::kNModTypesS][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."
@@ -134,7 +134,7 @@ const char *const WavePlug::modFuncSHelpTexts[kNModTypesS][2] = {
 	}
 };
 
-const char *const WavePlug::modFuncFHelpTexts[kNModTypesF][2] = {
+const char *const WavePlug::modFuncFHelpTexts[FunctionModulator::kNModTypesF][2] = {
 	{
 		"Mixes input 1 with input 2.",
 		"Amount of input 2 to mix in."

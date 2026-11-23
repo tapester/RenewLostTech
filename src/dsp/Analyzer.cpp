@@ -23,12 +23,8 @@ DEALINGS IN THE SOFTWARE.
 #include <algorithm>
 #include <cmath>
 
-// NOTE: This method does not attempt to delete existing sample buffers.
-// If re-initialization is desired, implement and call a "dispose"
-// method first.
-void Analyzer::initialize(BufferManager *bMan, int bufferSize) {
-	bufferManager = bMan;
-	
+void Analyzer::initialize(const SampleRate *sampleRate, int bufferSize) {
+	sr = sampleRate;
 	ampFunc.setValue(&amplitude);
 	freqFunc.setValue(&frequency);
 	
@@ -50,21 +46,19 @@ void Analyzer::initialize(BufferManager *bMan, int bufferSize) {
 	trigInverted = false;
 	endOfCycle = kPosNeg;
 	waveBufferSize = 0;
-	oldWave = NULL;
-	newWave = NULL;
 	
 	setBufferSize(bufferSize);
 }
 
 void Analyzer::reset(float a, float fHz) {
-	if (oldWave == NULL)
+	if (oldWave.empty())
 		return;
 	
-	aWeightModifier = WP_STD_SAMPLE_RATE / globalSampleRate;
-	maxWaveSize = std::min((int) (globalSampleRate/fMin + 0.5f) + 1, waveBufferSize);
+	aWeightModifier = WP_STD_SAMPLE_RATE / sr->rate;
+	maxWaveSize = std::min((int) (sr->rate/fMin + 0.5f) + 1, waveBufferSize);
 	
 	amplitude = a;
-	frequency = hzToUnsigned(fHz);
+	frequency = sr->hzToUnsigned(fHz);
 	
 	trigDisabled = true;
 	trigCount = 0;
@@ -73,41 +67,20 @@ void Analyzer::reset(float a, float fHz) {
 	newWaveSize = 0;
 	maxSample = oldWave[0] = oldWave[1] = 0.0f;
 	
-	waveFunc.setFunction(oldWaveSize, oldWave);
+	waveFunc.setFunction(oldWaveSize, oldWave.data());
 }
 
-bool Analyzer::setBufferSize(int bufferSize) {
+void Analyzer::setBufferSize(int bufferSize) {
 	if (bufferSize == waveBufferSize)
-		return true;
-	
-	bufferManager->deleteFloatBuffer(oldWave);
-	bufferManager->deleteFloatBuffer(newWave);
+		return;
 	
 	waveBufferSize = bufferSize;
 	
-	if (waveBufferSize > 0) {
-		if (!(oldWave = bufferManager->newFloatBuffer(waveBufferSize)))
-			goto alloc_failed;
-		
-		if (!(newWave = bufferManager->newFloatBuffer(waveBufferSize))) {
-			bufferManager->deleteFloatBuffer(oldWave);
-			goto alloc_failed;
-		}
-		
-		reset();
-	}
-	else {
-		oldWave = NULL;
-		newWave = NULL;
-	}
+	// assign() zero-fills and reuses the existing allocation when it is big enough.
+	oldWave.assign(bufferSize, 0.0f);
+	newWave.assign(bufferSize, 0.0f);
 	
-	return true;
-	
-	alloc_failed:
-	waveBufferSize = 0;
-	oldWave = NULL;
-	newWave = NULL;
-	return false;
+	reset(); // Does nothing for size 0.
 }
 
 void Analyzer::setAIncWeight(float weight) {
@@ -121,13 +94,13 @@ void Analyzer::setADecWeight(float weight) {
 }
 
 void Analyzer::setFMin(float hz) {
-	fMin = std::min(hz, globalMaxFrequency);
-	maxWaveSize = std::min((int) (globalSampleRate/fMin + 0.5f) + 1, waveBufferSize);
+	fMin = std::min(hz, sr->maxFrequency);
+	maxWaveSize = std::min((int) (sr->rate/fMin + 0.5f) + 1, waveBufferSize);
 }
 
 void Analyzer::setFMax(float hz) {
-	fMax = std::min(hz, globalMaxFrequency);
-	minWaveSize = (int) (globalSampleRate/fMax + 0.5f) + 1;
+	fMax = std::min(hz, sr->maxFrequency);
+	minWaveSize = (int) (sr->rate/fMax + 0.5f) + 1;
 }
 
 void Analyzer::setTrigInverted(bool onOff) {
@@ -185,7 +158,7 @@ void Analyzer::updateFreqAndWave(float sample, float absample) {
 	detectPeak = trigInverted;
 	
 	// Compute frequency, with lag if that is turned on.
-	frequency += fWNew*(hzToUnsigned(globalSampleRate/(newWaveSize-1)) - frequency);
+	frequency += fWNew*(sr->hzToUnsigned(sr->rate/(newWaveSize-1)) - frequency);
 	
 	// Normalize the waveform.
 	// 1.0e-8f is added to values used as denominators to prevent DbZ problems.
@@ -236,7 +209,7 @@ void Analyzer::updateFreqAndWave(float sample, float absample) {
 	}
 	
 	// Update signal source for waveform output object.
-	waveFunc.setFunction(newWaveSize, newWave);
+	waveFunc.setFunction(newWaveSize, newWave.data());
 	
 	// Swap the waveform output (oldWave) and recording (newWave) buffer pointers.
 	std::swap(oldWave, newWave);
