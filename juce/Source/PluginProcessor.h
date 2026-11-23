@@ -29,6 +29,9 @@ public:
 	const juce::String getProgramName(int) override {return "Default";}
 	void changeProgramName(int, const juce::String &) override {}
 
+	// The editor reads the live signal monitors straight from the core.
+	LostTechCore &getCore() {return core;}
+
 	void getStateInformation(juce::MemoryBlock &) override;
 	void setStateInformation(const void *, int) override;
 

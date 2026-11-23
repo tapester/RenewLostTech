@@ -42,6 +42,9 @@ target_sources(LostTechJUCE PRIVATE
 # The legacy core trips JUCE's strict warning flags; keep the build log readable.
 set_source_files_properties(${LOSTTECH_CORE_FILES} PROPERTIES
     COMPILE_OPTIONS "$<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>")
+# The logo is embedded so the editor can draw it at any size (BinaryData::logo_svg).
+juce_add_binary_data(LostTechAssets SOURCES ${PROJECT_SOURCE_DIR}/resources/logo.svg)
+
 target_include_directories(LostTechJUCE PRIVATE
     ${PROJECT_SOURCE_DIR}/src/common ${PROJECT_SOURCE_DIR}/src/core ${PROJECT_SOURCE_DIR}/src/dsp)
 
@@ -58,7 +61,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(LostTechJUCE
-    PRIVATE juce::juce_audio_utils
+    PRIVATE juce::juce_audio_utils LostTechAssets
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 clap_juce_extensions_plugin(TARGET LostTechJUCE

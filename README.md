@@ -93,7 +93,9 @@ the JUCE download. Needs CMake 3.22 or newer; on Linux also JUCE's
 [system packages](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md).
 The JUCE files land in `<build dir>/juce/LostTechJUCE_artefacts/Release/{VST3,CLAP}`.
 The plug-in is stereo in and out, has the same 54 parameters in the same order as the VST 2 plug-in,
-and uses JUCE's generic parameter editor (the custom VSTGUI editor is not ported).
+and has a port of the original window (same 512x488 layout, drawn with JUCE graphics, so it scales
+to any size; the logo is `resources/logo.svg`). Locks link the two channels, HELP shows the help text
+of the last control used, and the bottom bar shows the licence notice while HELP is off.
 
 ### Licence of the JUCE build
 
