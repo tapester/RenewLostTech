@@ -157,6 +157,8 @@ public: // public methods
 	void setParameter(int index, float value);
 	float getParameter(int index);
 	void getParameterDisplay(int index, char *text);
+	void getParameterDisplay(int index, float value, char *text); // For a value other than the current one.
+	static float getParameterDefault(int index);
 	void getParameterName(int index, char *text);
 	void getParameterLabel(int index, char *label);
 	

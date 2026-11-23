@@ -83,13 +83,24 @@ The workflow `.github/workflows/macos.yml` builds, tests, signs ad hoc, and pack
 
 Finder shows the bundle as a generic "Package" while it is inside the DMG and as "Bundle" once it is in one of the plug-in folders above. This is expected.
 
-## JUCE build (VST3 and CLAP, work in progress)
+## JUCE build (VST3 and CLAP)
 
 `cmake -S . -B build-juce -DLOSTTECH_JUCE=ON -DCMAKE_BUILD_TYPE=Release` and then
 `cmake --build build-juce --target LostTechJUCE_VST3 LostTechJUCE_CLAP`. Needs CMake 3.22 or newer;
 on Linux also JUCE's [system packages](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md).
-For now the plug-in only passes audio through: the effect itself is wired in during the next
-migration step. JUCE is AGPLv3 or commercial, so these binaries are AGPL unless you hold a JUCE licence.
+The plug-in is stereo in and out, has the same 54 parameters in the same order as the VST 2 plug-in,
+and uses JUCE's generic parameter editor (the custom VSTGUI editor is not ported).
+
+### Licence of the JUCE build
+
+The effect's own code stays under the MIT licence in `LICENSE`. JUCE, however, is dual-licensed:
+AGPLv3 or the paid-by-revenue JUCE licence. JUCE has no separate non-commercial licence, so this
+build uses the free open-source route: **the VST3 and CLAP binaries are distributed under the GNU
+Affero General Public License v3** (`LICENSE-AGPL-3.0.md`), and the plug-in's window says so and
+names this repository as the place to get the source. If you distribute these binaries you must
+keep that notice, include `LICENSE-AGPL-3.0.md` and `LICENSE`, and offer the matching source.
+Closed-source or differently licensed distribution needs your own JUCE licence. This is not legal
+advice.
 
 ## Tests and plug-in validation
 

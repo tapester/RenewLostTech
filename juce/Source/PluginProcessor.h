@@ -2,16 +2,18 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-// Placeholder: passes audio through. The next migration step replaces processBlock with
-// LostTechCore and declares the 54 parameters.
+#include "LostTechCore.hpp"
+
+// JUCE shell around LostTechCore. The core keeps its own parameter store and locking, so each
+// JUCE parameter is a thin view of one core parameter, in the same order as the VST2 plug-in.
 class LostTechProcessor : public juce::AudioProcessor {
 public:
 	LostTechProcessor();
 
-	void prepareToPlay(double, int) override {}
-	void releaseResources() override {}
+	void prepareToPlay(double sampleRate, int) override;
+	void releaseResources() override;
 	bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
-	void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override {}
+	void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
 
 	juce::AudioProcessorEditor *createEditor() override;
 	bool hasEditor() const override {return true;}
@@ -27,6 +29,9 @@ public:
 	const juce::String getProgramName(int) override {return "Default";}
 	void changeProgramName(int, const juce::String &) override {}
 
-	void getStateInformation(juce::MemoryBlock &) override {}
-	void setStateInformation(const void *, int) override {}
+	void getStateInformation(juce::MemoryBlock &) override;
+	void setStateInformation(const void *, int) override;
+
+private:
+	LostTechCore core;
 };

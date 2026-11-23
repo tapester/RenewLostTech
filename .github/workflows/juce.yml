@@ -57,7 +57,7 @@ jobs:
           [ "$(cmake -E sha256sum pluginval.zip | cut -d' ' -f1)" = "${{ matrix.pluginval_sha256 }}" ]
           cmake -E tar xf pluginval.zip
           chmod +x "${{ matrix.pluginval_exe }}" || true
-          "${{ matrix.pluginval_exe }}" --skip-gui-tests --strictness-level 5 \
+          "${{ matrix.pluginval_exe }}" --skip-gui-tests --strictness-level 10 \
             --validate "../build-juce/juce/LostTechJUCE_artefacts/Release/VST3/Lost Technology.vst3"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -66,3 +66,5 @@ jobs:
           path: |
             build-juce/juce/LostTechJUCE_artefacts/Release/VST3
             build-juce/juce/LostTechJUCE_artefacts/Release/CLAP
+            LICENSE
+            LICENSE-AGPL-3.0.md

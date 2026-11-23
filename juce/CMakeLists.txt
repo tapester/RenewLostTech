@@ -1,7 +1,8 @@
 # JUCE build of Lost Technology (VST3 and CLAP). Off by default: configure with
 # -DLOSTTECH_JUCE=ON. Needs CMake 3.22 or newer (JUCE's requirement).
 #
-# JUCE is AGPLv3 or commercial. Binaries built here are AGPL unless you hold a JUCE licence.
+# JUCE is AGPLv3 or commercial. Binaries built here are AGPLv3 (see LICENSE-AGPL-3.0.md) unless
+# you hold a JUCE licence.
 include(FetchContent)
 
 FetchContent_Declare(JUCE
@@ -30,16 +31,31 @@ juce_add_plugin(LostTechJUCE
     VST3_CATEGORIES Fx
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+# The effect itself comes from the SDK-free core; paths are relative to the top-level directory.
+set(LOSTTECH_CORE_FILES ${CORE_SOURCE_FILES})
+list(TRANSFORM LOSTTECH_CORE_FILES PREPEND ${PROJECT_SOURCE_DIR}/)
 target_sources(LostTechJUCE PRIVATE
+    ${LOSTTECH_CORE_FILES}
+    Source/PluginEditor.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h)
+# The legacy core trips JUCE's strict warning flags; keep the build log readable.
+set_source_files_properties(${LOSTTECH_CORE_FILES} PROPERTIES
+    COMPILE_OPTIONS "$<IF:$<CXX_COMPILER_ID:MSVC>,/w,-w>")
+target_include_directories(LostTechJUCE PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/common ${PROJECT_SOURCE_DIR}/src/core ${PROJECT_SOURCE_DIR}/src/dsp)
 
 target_compile_definitions(LostTechJUCE PUBLIC
+    ${PLUGIN_VERSION_DEFINITIONS}
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=1
     # A VST2 version was released and no VST3 yet: keep parameter IDs equal to the VST2 indexes.
     JUCE_FORCE_USE_LEGACY_PARAM_IDS=1)
+
+if(WIN32)
+    target_compile_definitions(LostTechJUCE PUBLIC NOMINMAX _CRT_SECURE_NO_WARNINGS)
+endif()
 
 target_link_libraries(LostTechJUCE
     PRIVATE juce::juce_audio_utils

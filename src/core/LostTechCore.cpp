@@ -310,7 +310,10 @@ void LostTechCore::getParameterName(int index, char *label) {
 }
 
 void LostTechCore::getParameterDisplay(int index, char *text) {
-	float value = getParameter(index);
+	getParameterDisplay(index, getParameter(index), text);
+}
+
+void LostTechCore::getParameterDisplay(int index, float value, char *text) {
 	if (index < kNumMonoParams) {
 		if (index == kPlugVersion)
 			std::strcpy(text, WP_VERSION_STRING(WP_MAJOR, WP_MINOR, WP_UPDATE));
@@ -321,6 +324,12 @@ void LostTechCore::getParameterDisplay(int index, char *text) {
 		index -= kNumMonoParams;
 		paramDisplayers[index % kNumParams](value, text);
 	}
+}
+
+float LostTechCore::getParameterDefault(int index) {
+	if (index == kBufferSize)
+		return 2.0f / 7.0f;
+	return (index < kNumMonoParams) ? 0.0f : initParamValues[(index - kNumMonoParams) % kNumParams];
 }
 
 void LostTechCore::getParameterLabel(int index, char *label) {
