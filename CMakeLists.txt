@@ -193,9 +193,14 @@ if(BUILD_TESTING)
 endif()
 
 # ---------------------------------------------------------------------------
-# JUCE build (VST3 and CLAP). Off by default so the VST 2 build stays untouched.
+# JUCE build (VST3 and CLAP). On by default so every configure and every CI job gets all the
+# plug-in formats; pass -DLOSTTECH_JUCE=OFF to skip it (it downloads JUCE while configuring).
 # ---------------------------------------------------------------------------
-option(LOSTTECH_JUCE "Build the JUCE (VST3/CLAP) plug-in" OFF)
+option(LOSTTECH_JUCE "Build the JUCE (VST3/CLAP) plug-in" ON)
+if(LOSTTECH_JUCE AND CMAKE_VERSION VERSION_LESS 3.22)
+    message(WARNING "LOSTTECH_JUCE needs CMake 3.22 or newer; skipping the VST3/CLAP build.")
+    set(LOSTTECH_JUCE OFF)
+endif()
 if(LOSTTECH_JUCE)
     add_subdirectory(juce)
 endif()

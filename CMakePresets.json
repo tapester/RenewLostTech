@@ -25,6 +25,16 @@
         "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64",
         "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"
       }
+    },
+    {
+      "name": "linux-x64",
+      "displayName": "Linux x64",
+      "description": "Configure the VST3 and CLAP plug-ins (the VST 2 plug-ins are Windows and macOS only).",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -36,7 +46,10 @@
       "targets": [
         "LostTech",
         "LostTechNoGUI",
-        "wpfunc_tests"
+        "wpfunc_tests",
+        "golden_test",
+        "LostTechJUCE_VST3",
+        "LostTechJUCE_CLAP"
       ]
     },
     {
@@ -54,7 +67,21 @@
       "configurePreset": "macos-universal",
       "targets": [
         "LostTechNoGUI",
-        "wpfunc_tests"
+        "wpfunc_tests",
+        "golden_test",
+        "LostTechJUCE_VST3",
+        "LostTechJUCE_CLAP"
+      ]
+    },
+    {
+      "name": "linux-x64-release",
+      "displayName": "Linux x64 Release plug-ins",
+      "configurePreset": "linux-x64",
+      "targets": [
+        "LostTechJUCE_VST3",
+        "LostTechJUCE_CLAP",
+        "wpfunc_tests",
+        "golden_test"
       ]
     }
   ]

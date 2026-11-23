@@ -85,9 +85,13 @@ Finder shows the bundle as a generic "Package" while it is inside the DMG and as
 
 ## JUCE build (VST3 and CLAP)
 
-`cmake -S . -B build-juce -DLOSTTECH_JUCE=ON -DCMAKE_BUILD_TYPE=Release` and then
-`cmake --build build-juce --target LostTechJUCE_VST3 LostTechJUCE_CLAP`. Needs CMake 3.22 or newer;
-on Linux also JUCE's [system packages](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md).
+JUCE is built by default, together with the VST 2 plug-ins (those are Windows and macOS only).
+Use a preset: `cmake --preset windows-x64`, `macos-universal` or `linux-x64`, then
+`cmake --build --preset <name>-release`. That builds every plug-in format for the platform, plus
+the tests, and GitHub Actions runs exactly the same presets. Pass `-DLOSTTECH_JUCE=OFF` to skip
+the JUCE download. Needs CMake 3.22 or newer; on Linux also JUCE's
+[system packages](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md).
+The JUCE files land in `<build dir>/juce/LostTechJUCE_artefacts/Release/{VST3,CLAP}`.
 The plug-in is stereo in and out, has the same 54 parameters in the same order as the VST 2 plug-in,
 and uses JUCE's generic parameter editor (the custom VSTGUI editor is not ported).
 
