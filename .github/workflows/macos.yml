@@ -16,14 +16,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Configure (universal binary arm64 + x86_64)
-        run: |
-          cmake -S . -B build-macos \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        run: cmake --preset macos-universal
 
-      - name: Build plug-in and tests
-        run: cmake --build build-macos --config Release --parallel
+      - name: Build plug-ins and tests
+        run: cmake --build --preset macos-universal-release --parallel
 
       - name: Run DSP tests
         run: ctest --test-dir build-macos -C Release --output-on-failure
@@ -59,6 +55,15 @@ jobs:
           # A DMG keeps the bundle flag and all metadata intact; the ZIP is a fallback.
           hdiutil create -volname LostTechNoGUI -srcfolder stage -ov -format UDZO dist/LostTechNoGUI-macos.dmg
           ditto -c -k --sequesterRsrc --keepParent stage/LostTechNoGUI.vst dist/LostTechNoGUI-macos.zip
+          # VST3 and CLAP from the JUCE build, ad-hoc signed like the VST 2 bundle.
+          JUCE_OUT=build-macos/juce/LostTechJUCE_artefacts/Release
+          for B in "$JUCE_OUT/VST3/Lost Technology.vst3" "$JUCE_OUT/CLAP/Lost Technology.clap"; do
+            codesign --force --deep --sign - "$B"
+            codesign --verify --deep --strict "$B"
+          done
+          ditto -c -k --sequesterRsrc --keepParent "$JUCE_OUT/VST3/Lost Technology.vst3" dist/LostTech-vst3-macos.zip
+          ditto -c -k --sequesterRsrc --keepParent "$JUCE_OUT/CLAP/Lost Technology.clap" dist/LostTech-clap-macos.zip
+          cp LICENSE LICENSE-AGPL-3.0.md dist/
           ls -la dist
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -67,6 +72,10 @@ jobs:
           path: |
             dist/LostTechNoGUI-macos.dmg
             dist/LostTechNoGUI-macos.zip
+            dist/LostTech-vst3-macos.zip
+            dist/LostTech-clap-macos.zip
+            dist/LICENSE
+            dist/LICENSE-AGPL-3.0.md
 
       # Validate with pluginval (fixed version with checksum)
       - name: Download and validate pluginval
@@ -77,6 +86,8 @@ jobs:
             | shasum -a 256 -c -
           unzip -q pluginval.zip
           ./pluginval.app/Contents/MacOS/pluginval --version
+          ./pluginval.app/Contents/MacOS/pluginval --skip-gui-tests --strictness-level 10 \
+            --validate "build-macos/juce/LostTechJUCE_artefacts/Release/VST3/Lost Technology.vst3"
 
       - name: Validate plug-in with pluginval
         run: |

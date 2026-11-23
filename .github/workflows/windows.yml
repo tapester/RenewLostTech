@@ -35,14 +35,29 @@ jobs:
       - name: Run DSP tests
         run: ctest --test-dir build-win64 -C Release --output-on-failure
 
+      - name: Validate the VST3 with pluginval
+        shell: bash
+        run: |
+          mkdir pluginval && cd pluginval
+          curl -sSL -o pluginval.zip \
+            https://github.com/Tracktion/pluginval/releases/download/v1.0.0/pluginval_Windows.zip
+          [ "$(cmake -E sha256sum pluginval.zip | cut -d' ' -f1)" = "27fd7364486a87b9ae36235eba0daa171075567b921eaf2446db4237c5411574" ]
+          cmake -E tar xf pluginval.zip
+          ./pluginval.exe --skip-gui-tests --strictness-level 10 \
+            --validate "../build-win64/juce/LostTechJUCE_artefacts/Release/VST3/Lost Technology.vst3"
+
       - name: Package plug-ins
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item build-win64/Release/LostTech.dll dist/
           Copy-Item build-win64/Release/LostTechNoGUI.dll dist/
+          $juce = "build-win64/juce/LostTechJUCE_artefacts/Release"
+          Copy-Item -Recurse "$juce/VST3/Lost Technology.vst3" dist/
+          Copy-Item "$juce/CLAP/Lost Technology.clap" dist/
+          Copy-Item LICENSE, LICENSE-AGPL-3.0.md dist/
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: LostTech-windows-x64
-          path: dist/*.dll
+          path: dist

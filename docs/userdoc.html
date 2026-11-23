@@ -555,6 +555,20 @@
 <h1><a id="history">Project history</a></h1>
 <ul>
 	<li>
+		<h3>2026-11-23 - v0.3.0 - VST3 and CLAP versions, new window</h3>
+		<ul class="bullets">
+			<li>New: VST3 and CLAP versions for Windows, macOS and Linux, built with JUCE. They have the same 54 parameters in the same order as the VST 2 plugin. The VST3 is marked as a replacement for the VST 2 plugin (how far hosts honor this varies).</li>
+			<li>New window in the VST3 and CLAP versions: the original layout redrawn with scalable graphics, so the window can be resized. Parameter locks and the HELP bar work as before. The VST 2 window is unchanged.</li>
+			<li>Each plugin instance now keeps its own sample rate. Before, instances running at different sample rates could disturb each other.</li>
+			<li>Changing the buffer size or the smoothing window no longer allocates memory in the audio thread. Parameter values are clamped to the range 0-1, and invalid (NaN) values are handled.</li>
+			<li>Apple Silicon (ARM64) builds now flush denormal numbers to zero, like the x86 builds.</li>
+			<li>Changed: above 44.1 kHz the oversampling is scaled down by the sample rate divided by 44100 (never below 1x). In a test, the heaviest patch went from 89% to 54% of one CPU core at 96 kHz. Sound at 44.1 kHz and lower is unchanged; at higher rates the effective oversampling is lower than the setting says.</li>
+			<li>The Freq Offset display is now at most 8 characters, the VST limit. It used to show "-22000.00" at the knob minimum.</li>
+			<li>License: the VST3 and CLAP versions are distributed under the GNU AGPLv3, because they include JUCE. The VST 2 version stays under the MIT license.</li>
+			<li>Behind the scenes: CMake presets, automatic builds and pluginval checks on Windows, macOS and Linux, and a regression test that compares the output with a recording of the VST 2 plugin.</li>
+		</ul>
+	</li>
+	<li>
 		<h3>2007-11-21 - v0.2.5 - Minor update</h3>
 		<ul class="bullets">
 			<li>More reliable thread synchronization, particularly for multiprocessors.</li>

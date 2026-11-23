@@ -2,7 +2,7 @@
 
 Lost Technology is a VST 2.4 audio plug-in with GUI and no-GUI builds. It uses the bundled Steinberg VST 2.4 SDK and VSTGUI sources in `dependencies/vstsdk2.4/`.
 
-The current plug-in version is **0.2.6**. CMake 3.20 or newer is required (4.2 or newer for the Visual Studio 2026 generator on Windows); CMake is the supported build system, while the legacy MinGW makefile is retained for reference and is not maintained.
+The current plug-in version is **0.3.0**. CMake 3.20 or newer is required (4.2 or newer for the Visual Studio 2026 generator on Windows); CMake is the supported build system, while the legacy MinGW makefile is retained for reference and is not maintained.
 
 ## Platform support
 
@@ -82,6 +82,31 @@ The workflow `.github/workflows/macos.yml` builds, tests, signs ad hoc, and pack
 4. Rescan plug-ins in your host.
 
 Finder shows the bundle as a generic "Package" while it is inside the DMG and as "Bundle" once it is in one of the plug-in folders above. This is expected.
+
+## JUCE build (VST3 and CLAP)
+
+JUCE is built by default, together with the VST 2 plug-ins (those are Windows and macOS only).
+Use a preset: `cmake --preset windows-x64`, `macos-universal` or `linux-x64`, then
+`cmake --build --preset <name>-release`. That builds every plug-in format for the platform, plus
+the tests, and GitHub Actions runs exactly the same presets. Pass `-DLOSTTECH_JUCE=OFF` to skip
+the JUCE download. Needs CMake 3.22 or newer; on Linux also JUCE's
+[system packages](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md).
+The JUCE files land in `<build dir>/juce/LostTechJUCE_artefacts/Release/{VST3,CLAP}`.
+The plug-in is stereo in and out, has the same 54 parameters in the same order as the VST 2 plug-in,
+and has a port of the original window (same 512x488 layout, drawn with JUCE graphics, so it scales
+to any size; the logo is `resources/logo.svg`). Locks link the two channels, HELP shows the help text
+of the last control used, and the bottom bar shows the licence notice while HELP is off.
+
+### Licence of the JUCE build
+
+The effect's own code stays under the MIT licence in `LICENSE`. JUCE, however, is dual-licensed:
+AGPLv3 or the paid-by-revenue JUCE licence. JUCE has no separate non-commercial licence, so this
+build uses the free open-source route: **the VST3 and CLAP binaries are distributed under the GNU
+Affero General Public License v3** (`LICENSE-AGPL-3.0.md`), and the plug-in's window says so and
+names this repository as the place to get the source. If you distribute these binaries you must
+keep that notice, include `LICENSE-AGPL-3.0.md` and `LICENSE`, and offer the matching source.
+Closed-source or differently licensed distribution needs your own JUCE licence. This is not legal
+advice.
 
 ## Tests and plug-in validation
 

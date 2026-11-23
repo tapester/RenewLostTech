@@ -48,3 +48,14 @@ pluginval is Tracktion's plug-in validation tool. It is used only to validate th
 - Current version as of 11-NOV-2026: pluginval - 1.0.4
 - Scope: pluginval runs as a separate process, is not linked into the plug-in, and is not shipped with it. `/tools/pluginval/` is listed in `.gitignore`, so the binary is not meant to be committed.
 - If a pluginval binary is ever redistributed (for example attached to a release), the GPLv3 terms apply to that distribution: include the license text and make the corresponding source available, for example by referencing the exact upstream release.
+
+## JUCE (optional VST3/CLAP build, `-DLOSTTECH_JUCE=ON`)
+
+- Upstream: <https://github.com/juce-framework/JUCE>, fetched at tag `9.0.6` when the option is on. It is not bundled in this repository.
+- Licence: JUCE modules are dual-licensed under the AGPLv3 and the commercial JUCE licence. This project uses the AGPLv3 option, so binaries of the JUCE build are distributed under the AGPLv3; the licence text is in `LICENSE-AGPL-3.0.md`. JUCE does not offer a separate non-commercial licence.
+- JUCE vendors further third-party code (for example the VST3 SDK and zlib). Its inventory is `JUCE.spdx.json` in the JUCE source tree; follow it when redistributing binaries.
+
+## clap-juce-extensions (optional CLAP wrapper)
+
+- Upstream: <https://github.com/free-audio/clap-juce-extensions>, fetched at commit `3837f4a6ed2ab0ba46aba69ae5b7041c7c64ce74` with its CLAP headers as submodules. Not bundled.
+- Licence: MIT (`LICENSE.md` in its source, copyright 2019-2020 Paul Walker). Keep its notice when redistributing it.

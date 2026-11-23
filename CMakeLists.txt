@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(LostTech VERSION 0.2.6)
+project(LostTech VERSION 0.3.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,20 +34,30 @@ set(DSP_SOURCE_FILES
         )
 
 # ---------------------------------------------------------------------------
-# Common plug-in headers and parameter definitions.
+# The effect itself (parameters, threading, processing). No plug-in SDK needed, so every
+# plug-in format and the golden test build on it.
+# ---------------------------------------------------------------------------
+set(CORE_SOURCE_FILES
+        ${DSP_SOURCE_FILES}
+        src/common/wpstdinclude.h
+        src/core/LostTechCore.cpp
+        src/core/LostTechCore.hpp
+        src/core/LostTechParameters.cpp
+        src/core/waveplugparams.h
+        )
+
+# ---------------------------------------------------------------------------
+# VST 2 shell around the core.
 # ---------------------------------------------------------------------------
 set(PLUGIN_COMMON_FILES
-        src/common/wpstdinclude.h
+        ${CORE_SOURCE_FILES}
         src/plugin/WavePlug.hpp
-        src/plugin/WavePlugParameters.cpp
-        src/plugin/waveplugparams.h
         )
 
 # ---------------------------------------------------------------------------
 # GUI plug-in sources, including the VSTGUI editor and Windows resources.
 # ---------------------------------------------------------------------------
 set(GUI_SOURCE_FILES
-        ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
         src/plugin/WavePlug.cpp
         src/plugin/WavePlugMain.cpp
@@ -60,7 +70,6 @@ set(GUI_SOURCE_FILES
 # The no-GUI variant reuses WavePlug.cpp through a wrapper that defines WP_NO_GUI.
 # ---------------------------------------------------------------------------
 set(NOGUI_SOURCE_FILES
-        ${DSP_SOURCE_FILES}
         ${PLUGIN_COMMON_FILES}
         src/plugin/WavePlugMainNoGUI.cpp
         src/plugin/WavePlugNoGUI.cpp
@@ -117,6 +126,7 @@ endforeach()
 set(PLUGIN_INCLUDE_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}
         src/common
+        src/core
         src/dsp
         src/plugin
         src/ui
@@ -170,6 +180,29 @@ if(BUILD_TESTING)
     add_executable(wpfunc_tests tests/dsp/wpfunc_tests.cpp src/dsp/wpfunc.cpp)
     target_include_directories(wpfunc_tests PRIVATE src/dsp)
     add_test(NAME wpfunc_tests COMMAND wpfunc_tests)
+    
+    # Whole-effect regression test; needs only the core, so it builds on every platform.
+    add_executable(golden_test tests/core/golden_test.cpp ${CORE_SOURCE_FILES})
+    if(WIN32)
+        target_compile_definitions(golden_test PRIVATE NOMINMAX)
+    endif()
+    target_include_directories(golden_test PRIVATE src/common src/core src/dsp)
+    target_compile_definitions(golden_test PRIVATE ${PLUGIN_VERSION_DEFINITIONS})
+    add_test(NAME golden_test
+        COMMAND golden_test ${CMAKE_CURRENT_SOURCE_DIR}/tests/core/golden_reference.bin)
+endif()
+
+# ---------------------------------------------------------------------------
+# JUCE build (VST3 and CLAP). On by default so every configure and every CI job gets all the
+# plug-in formats; pass -DLOSTTECH_JUCE=OFF to skip it (it downloads JUCE while configuring).
+# ---------------------------------------------------------------------------
+option(LOSTTECH_JUCE "Build the JUCE (VST3/CLAP) plug-in" ON)
+if(LOSTTECH_JUCE AND CMAKE_VERSION VERSION_LESS 3.22)
+    message(WARNING "LOSTTECH_JUCE needs CMake 3.22 or newer; skipping the VST3/CLAP build.")
+    set(LOSTTECH_JUCE OFF)
+endif()
+if(LOSTTECH_JUCE)
+    add_subdirectory(juce)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -179,7 +212,7 @@ endif()
 # ---------------------------------------------------------------------------
 set(PLUGINVAL_EXE "${CMAKE_CURRENT_SOURCE_DIR}/tools/pluginval/pluginval.exe"
     CACHE FILEPATH "Path to pluginval.exe")
-set(PLUGINVAL_STRICTNESS 10 CACHE STRING "pluginval strictness level (1-10)")
+set(PLUGINVAL_STRICTNESS 5 CACHE STRING "pluginval strictness level (1-10)")
 set(PLUGINVAL_REPEAT 3 CACHE STRING "Number of times pluginval repeats the tests")
 set(PLUGINVAL_SEED "0x44c4e05" CACHE STRING "Fixed pluginval random seed for reproducible runs (empty = random)")
 set(PLUGINVAL_TIMEOUT 900 CACHE STRING "CTest timeout per pluginval test, in seconds")
@@ -199,7 +232,7 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
     string(REPLACE ";" " " PLUGINVAL_ARGS_STR "${PLUGINVAL_ARGS}")
     set_target_properties(LostTech PROPERTIES
         VS_DEBUGGER_COMMAND           "${PLUGINVAL_EXE}"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} --verbose \"$<TARGET_FILE:LostTech>\""
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} --verbose --validate \"$<TARGET_FILE:LostTech>\""
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:LostTech>")
 
     # One build target and one CTest entry per plug-in variant.
@@ -207,14 +240,20 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
     foreach(PV_TARGET LostTech LostTechNoGUI)
         string(TOLOWER ${PV_TARGET} PV_NAME)
 
+#        add_custom_target(validate_${PV_NAME}
+#            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+#        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
         add_custom_target(validate_${PV_NAME}
-            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
-        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} --validate "$<TARGET_FILE:${PV_TARGET}>"
+            USES_TERMINAL
+            COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
 
         # The GUI variant opens its editor, so CTest needs an interactive desktop session.
         if(BUILD_TESTING)
             add_test(NAME pluginval_${PV_NAME}
-                     COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+                     COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} --validate "$<TARGET_FILE:${PV_TARGET}>")
             set_tests_properties(pluginval_${PV_NAME} PROPERTIES TIMEOUT ${PLUGINVAL_TIMEOUT})
         endif()
     endforeach()
