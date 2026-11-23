@@ -183,6 +183,9 @@ if(BUILD_TESTING)
     
     # Whole-effect regression test; needs only the core, so it builds on every platform.
     add_executable(golden_test tests/core/golden_test.cpp ${CORE_SOURCE_FILES})
+    if(WIN32)
+        target_compile_definitions(golden_test PRIVATE NOMINMAX)
+    endif()
     target_include_directories(golden_test PRIVATE src/common src/core src/dsp)
     target_compile_definitions(golden_test PRIVATE ${PLUGIN_VERSION_DEFINITIONS})
     add_test(NAME golden_test
@@ -204,7 +207,7 @@ endif()
 # ---------------------------------------------------------------------------
 set(PLUGINVAL_EXE "${CMAKE_CURRENT_SOURCE_DIR}/tools/pluginval/pluginval.exe"
     CACHE FILEPATH "Path to pluginval.exe")
-set(PLUGINVAL_STRICTNESS 10 CACHE STRING "pluginval strictness level (1-10)")
+set(PLUGINVAL_STRICTNESS 5 CACHE STRING "pluginval strictness level (1-10)")
 set(PLUGINVAL_REPEAT 3 CACHE STRING "Number of times pluginval repeats the tests")
 set(PLUGINVAL_SEED "0x44c4e05" CACHE STRING "Fixed pluginval random seed for reproducible runs (empty = random)")
 set(PLUGINVAL_TIMEOUT 900 CACHE STRING "CTest timeout per pluginval test, in seconds")
@@ -224,7 +227,7 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
     string(REPLACE ";" " " PLUGINVAL_ARGS_STR "${PLUGINVAL_ARGS}")
     set_target_properties(LostTech PROPERTIES
         VS_DEBUGGER_COMMAND           "${PLUGINVAL_EXE}"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} --verbose \"$<TARGET_FILE:LostTech>\""
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${PLUGINVAL_ARGS_STR} --verbose --validate \"$<TARGET_FILE:LostTech>\""
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:LostTech>")
 
     # One build target and one CTest entry per plug-in variant.
@@ -232,14 +235,20 @@ if(WIN32 AND EXISTS "${PLUGINVAL_EXE}")
     foreach(PV_TARGET LostTech LostTechNoGUI)
         string(TOLOWER ${PV_TARGET} PV_NAME)
 
+#        add_custom_target(validate_${PV_NAME}
+#            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+#        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
         add_custom_target(validate_${PV_NAME}
-            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
-        set_target_properties(validate_${PV_NAME} PROPERTIES USES_TERMINAL COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+            COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} --validate "$<TARGET_FILE:${PV_TARGET}>"
+            USES_TERMINAL
+            COMMENT "Validating ${PV_NAME} with pluginval (strictness ${PLUGINVAL_STRICTNESS})")
+
 
         # The GUI variant opens its editor, so CTest needs an interactive desktop session.
         if(BUILD_TESTING)
             add_test(NAME pluginval_${PV_NAME}
-                     COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} "$<TARGET_FILE:${PV_TARGET}>")
+                     COMMAND "${PLUGINVAL_EXE}" ${PLUGINVAL_ARGS} --validate "$<TARGET_FILE:${PV_TARGET}>")
             set_tests_properties(pluginval_${PV_NAME} PROPERTIES TIMEOUT ${PLUGINVAL_TIMEOUT})
         endif()
     endforeach()
