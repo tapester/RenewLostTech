@@ -48,6 +48,7 @@
         "LostTechNoGUI",
         "wpfunc_tests",
         "golden_test",
+        "preset_test",
         "LostTechJUCE_VST3",
         "LostTechJUCE_CLAP"
       ]
@@ -69,6 +70,7 @@
         "LostTechNoGUI",
         "wpfunc_tests",
         "golden_test",
+        "preset_test",
         "LostTechJUCE_VST3",
         "LostTechJUCE_CLAP"
       ]
@@ -81,7 +83,8 @@
         "LostTechJUCE_VST3",
         "LostTechJUCE_CLAP",
         "wpfunc_tests",
-        "golden_test"
+        "golden_test",
+        "preset_test"
       ]
     }
   ]
