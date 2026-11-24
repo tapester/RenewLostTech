@@ -19,16 +19,17 @@ FetchContent_MakeAvailable(JUCE clap-juce-extensions)
 # PLUGIN_CODE keeps the old VST2 unique ID ('CQCQ').
 juce_add_plugin(LostTechJUCE
     PRODUCT_NAME "Lost Technology"
-    COMPANY_NAME "Transvaal Audio"
-    BUNDLE_ID com.transvaalaudio.losttech
-    PLUGIN_MANUFACTURER_CODE Trva
+    COMPANY_NAME "Tapester"
+    BUNDLE_ID com.tapester.losttech
+    COMPANY_WEBSITE "https://github.com/tapester/RenewLostTech"
+    PLUGIN_MANUFACTURER_CODE Tpst
     PLUGIN_CODE CQCQ
     FORMATS VST3
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     VERSION ${PROJECT_VERSION}
-    VST3_CATEGORIES Fx
+    VST3_CATEGORIES Fx Filter Pitch Shift
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 # The effect itself comes from the SDK-free core; paths are relative to the top-level directory.
@@ -65,5 +66,5 @@ target_link_libraries(LostTechJUCE
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 clap_juce_extensions_plugin(TARGET LostTechJUCE
-    CLAP_ID "com.transvaalaudio.losttech"
-    CLAP_FEATURES audio-effect)
+    CLAP_ID "com.tapester.losttech"
+    CLAP_FEATURES audio-effect filter frequency-shifter glitch)
