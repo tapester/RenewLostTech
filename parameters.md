@@ -1,6 +1,6 @@
 # Lost Technology Parameter Reference
 
-This document defines the complete legacy VST2 parameter set for **Lost Technology** and its recommended mapping to CLAP.
+This document records the legacy VST2 parameter layout and how the current JUCE-based VST3 and CLAP builds expose it. The mapping formulas describe the DSP's interpretation of normalized values; they do not imply that the wrappers publish typed, stepped host parameters.
 
 ## Plug-in identity
 
@@ -13,7 +13,8 @@ This document defines the complete legacy VST2 parameter set for **Lost Technolo
 | VST2 unique ID expression | `CCONST('C', 'Q', 'C', 'Q')` |
 | VST2 unique ID, hexadecimal | `0x43514351` |
 | VST2 unique ID, decimal | `1129395025` |
-| Recommended CLAP ID | `org.renewlosttech.losttechnology` |
+| CLAP plug-in ID | `com.transvaalaudio.losttech` |
+| VST3 plug-in identity | JUCE `PLUGIN_CODE CQCQ`; VST3 replacement compatibility enabled |
 | Plug-in category | Effect |
 | Programs | 20 factory presets, defined in `LostTechParameters.cpp` |
 | Audio inputs | 2 |
@@ -21,7 +22,7 @@ This document defines the complete legacy VST2 parameter set for **Lost Technolo
 | Total VST2 parameters | 54 |
 | Mutable legacy parameters | 53 |
 
-> The proposed CLAP ID must be confirmed before the first public release. Once published, it should never be changed.
+The CLAP ID above is the one configured in `juce/CMakeLists.txt`.
 
 ## Parameter organization
 
@@ -31,7 +32,9 @@ The legacy VST2 parameter order is:
 2. Channel 1 parameters, indices `2` through `27`
 3. Channel 2 parameters, indices `28` through `53`
 
-Each channel contains the same block of 26 parameters. For compatibility, the recommended CLAP parameter IDs are identical to the corresponding VST2 indices. ID `0` remains reserved, although the legacy `Version` parameter should not be exposed as a CLAP parameter.
+Each channel contains the same block of 26 parameters. The JUCE processor registers all 54 parameters in this legacy order, including `Version` at index 0. The parameter table's index column is the position used by the implementation; it should not be read as a published CLAP parameter ID. `JUCE_FORCE_USE_LEGACY_PARAM_IDS=1` is enabled for VST3 compatibility.
+
+The JUCE wrapper uses a generic `AudioProcessorParameter` for each entry. It supplies normalized value, default, name, label, and display text from the core; it marks only `Version` non-automatable. It does not declare parameter classes with boolean, integer, or choice metadata, nor custom ranges or step counts. Consequently, the core may interpret a parameter discretely (for example, a modulation type) while the host-facing wrapper still exposes a normalized parameter. The CLAP extension adapts these JUCE parameters; the project does not define a separate CLAP parameter table or explicit per-parameter CLAP IDs/flags.
 
 ## Mapping conventions
 
@@ -43,62 +46,62 @@ Each channel contains the same block of 26 parameters. For compatibility, the re
 
 ## Complete parameter index
 
-| VST2 index | Recommended CLAP ID | Legacy name | Scope | Default `v` | Effective default | Effective range | Unit | Mapping |
+| Legacy/JUCE parameter index | Legacy name | Scope | Default `v` | Effective default | Effective range | Unit | Core mapping |
 |---:|---:|---|---|---:|---|---|---|---|
-| 0 | Reserved | `Version` | Global | 0.0 | Version string | Not applicable | None | Display-only dummy parameter; host writes are ignored |
-| 1 | 1 | `BufrSize` | Global | 0.285714 | 4x | 1x to 128x | Multiplier | `1 << round(7 * v)` |
-| 2 | 2 | `AIncLag1` | Channel 1 | 0.1 | 88.773% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.2)` |
-| 3 | 3 | `ADecLag1` | Channel 1 | 0.8 | 99.909% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.01)` |
-| 4 | 4 | `GatLvlA1` | Channel 1 | 0.05 | 0.0126% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
-| 5 | 5 | `GatLvlS1` | Channel 1 | 0.75 | 12.4817% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
-| 6 | 6 | `HiTrig1` | Channel 1 | 0.783 | 84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
-| 7 | 7 | `LowTrig1` | Channel 1 | 0.217 | -84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
-| 8 | 8 | `FMin1` | Channel 1 | 0.00055 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
-| 9 | 9 | `FMax1` | Channel 1 | 0.73 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
-| 10 | 10 | `FLag1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
-| 11 | 11 | `WLag1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
-| 12 | 12 | `InvTrig1` | Channel 1 | 0.0 | Off | Off or On | Boolean | `v > 0.5` |
-| 13 | 13 | `Interp1` | Channel 1 | 1.0 | On | Off or On | Boolean | `v > 0.5` |
-| 14 | 14 | `AModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 15 | 15 | `AModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 16 | 16 | `FModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 17 | 17 | `FModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 18 | 18 | `WModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 19 | 19 | `WModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 20 | 20 | `AOffset1` | Channel 1 | 0.5 | 0% | -100% to +100% | % | `200 * (v - 0.5)` |
-| 21 | 21 | `AGain1` | Channel 1 | 0.5 | 0 dB, gain 1.0 | Quiet to gain 5000 | dB display | Piecewise gain mapping described below |
-| 22 | 22 | `FOffset1` | Channel 1 | 0.5 | 0 Hz | -G Hz to +G Hz | Hz | Symmetric exponential mapping described below |
-| 23 | 23 | `FGain1` | Channel 1 | 0.5 | 0 octaves, factor 1.0 | Minimum to factor 5000 | Octaves | Gain mapping as `AGain`; display is `log2(gain)` |
-| 24 | 24 | `Oversmp1` | Channel 1 | 0.0 | 1x | 1x to 16x | Multiplier | `1 + floor(15 * v)` |
-| 25 | 25 | `SmooWin1` | Channel 1 | 0.0 | 0 samples | 0 to 250 samples | Samples | `floor(250 * v)` |
-| 26 | 26 | `OModTyp1` | Channel 1 | 0.0 | Add | 6 enum values | Type | `floor(0.999 * v * 6)` |
-| 27 | 27 | `OModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 28 | 28 | `AIncLag2` | Channel 2 | 0.1 | 88.773% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.2)` |
-| 29 | 29 | `ADecLag2` | Channel 2 | 0.8 | 99.909% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.01)` |
-| 30 | 30 | `GatLvlA2` | Channel 2 | 0.05 | 0.0126% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
-| 31 | 31 | `GatLvlS2` | Channel 2 | 0.75 | 12.4817% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
-| 32 | 32 | `HiTrig2` | Channel 2 | 0.783 | 84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
-| 33 | 33 | `LowTrig2` | Channel 2 | 0.217 | -84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
-| 34 | 34 | `FMin2` | Channel 2 | 0.00055 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
-| 35 | 35 | `FMax2` | Channel 2 | 0.73 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
-| 36 | 36 | `FLag2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
-| 37 | 37 | `WLag2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
-| 38 | 38 | `InvTrig2` | Channel 2 | 0.0 | Off | Off or On | Boolean | `v > 0.5` |
-| 39 | 39 | `Interp2` | Channel 2 | 1.0 | On | Off or On | Boolean | `v > 0.5` |
-| 40 | 40 | `AModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 41 | 41 | `AModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 42 | 42 | `FModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 43 | 43 | `FModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 44 | 44 | `WModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
-| 45 | 45 | `WModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
-| 46 | 46 | `AOffset2` | Channel 2 | 0.5 | 0% | -100% to +100% | % | `200 * (v - 0.5)` |
-| 47 | 47 | `AGain2` | Channel 2 | 0.5 | 0 dB, gain 1.0 | Quiet to gain 5000 | dB display | Piecewise gain mapping described below |
-| 48 | 48 | `FOffset2` | Channel 2 | 0.5 | 0 Hz | -G Hz to +G Hz | Hz | Symmetric exponential mapping described below |
-| 49 | 49 | `FGain2` | Channel 2 | 0.5 | 0 octaves, factor 1.0 | Minimum to factor 5000 | Octaves | Gain mapping as `AGain`; display is `log2(gain)` |
-| 50 | 50 | `Oversmp2` | Channel 2 | 0.0 | 1x | 1x to 16x | Multiplier | `1 + floor(15 * v)` |
-| 51 | 51 | `SmooWin2` | Channel 2 | 0.0 | 0 samples | 0 to 250 samples | Samples | `floor(250 * v)` |
-| 52 | 52 | `OModTyp2` | Channel 2 | 0.0 | Add | 6 enum values | Type | `floor(0.999 * v * 6)` |
-| 53 | 53 | `OModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 0 | `Version` | Global | 0.0 | Version string | Not applicable | None | Display-only; wrapper marks non-automatable |
+| 1 | `BufrSize` | Global | 0.285714 | 4x | 1x to 128x | Multiplier | `1 << round(7 * v)` |
+| 2 | `AIncLag1` | Channel 1 | 0.1 | 88.773% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.2)` |
+| 3 | `ADecLag1` | Channel 1 | 0.8 | 99.909% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.01)` |
+| 4 | `GatLvlA1` | Channel 1 | 0.05 | 0.0126% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
+| 5 | `GatLvlS1` | Channel 1 | 0.75 | 12.4817% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
+| 6 | `HiTrig1` | Channel 1 | 0.783 | 84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
+| 7 | `LowTrig1` | Channel 1 | 0.217 | -84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
+| 8 | `FMin1` | Channel 1 | 0.00055 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
+| 9 | `FMax1` | Channel 1 | 0.73 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
+| 10 | `FLag1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
+| 11 | `WLag1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
+| 12 | `InvTrig1` | Channel 1 | 0.0 | Off | Off or On | Boolean | `v > 0.5` |
+| 13 | `Interp1` | Channel 1 | 1.0 | On | Off or On | Boolean | `v > 0.5` |
+| 14 | `AModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 15 | `AModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 16 | `FModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 17 | `FModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 18 | `WModTyp1` | Channel 1 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 19 | `WModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 20 | `AOffset1` | Channel 1 | 0.5 | 0% | -100% to +100% | % | `200 * (v - 0.5)` |
+| 21 | `AGain1` | Channel 1 | 0.5 | 0 dB, gain 1.0 | Quiet to gain 5000 | dB display | Piecewise gain mapping described below |
+| 22 | `FOffset1` | Channel 1 | 0.5 | 0 Hz | -G Hz to +G Hz | Hz | Symmetric exponential mapping described below |
+| 23 | `FGain1` | Channel 1 | 0.5 | 0 octaves, factor 1.0 | Minimum to factor 5000 | Octaves | Gain mapping as `AGain`; display is `log2(gain)` |
+| 24 | `Oversmp1` | Channel 1 | 0.0 | 1x | 1x to 16x | Multiplier | `1 + floor(15 * v)` |
+| 25 | `SmooWin1` | Channel 1 | 0.0 | 0 samples | 0 to 250 samples | Samples | `floor(250 * v)` |
+| 26 | `OModTyp1` | Channel 1 | 0.0 | Add | 6 enum values | Type | `floor(0.999 * v * 6)` |
+| 27 | `OModMix1` | Channel 1 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 28 | `AIncLag2` | Channel 2 | 0.1 | 88.773% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.2)` |
+| 29 | `ADecLag2` | Channel 2 | 0.8 | 99.909% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.01)` |
+| 30 | `GatLvlA2` | Channel 2 | 0.05 | 0.0126% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
+| 31 | `GatLvlS2` | Channel 2 | 0.75 | 12.4817% | 0% to 100% | % | `100 * (pow(2, 12*v) - 1) / 4095` |
+| 32 | `HiTrig2` | Channel 2 | 0.783 | 84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
+| 33 | `LowTrig2` | Channel 2 | 0.217 | -84.9% | -150% to +150% | % | `300 * (v - 0.5)` |
+| 34 | `FMin2` | Channel 2 | 0.00055 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
+| 35 | `FMax2` | Channel 2 | 0.73 | Sample-rate dependent | 1 Hz to G Hz | Hz | `(G - 1) * (pow(2, 9*v) - 1) / 511 + 1` |
+| 36 | `FLag2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
+| 37 | `WLag2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * pow(log10(9*v + 1), 0.4)` |
+| 38 | `InvTrig2` | Channel 2 | 0.0 | Off | Off or On | Boolean | `v > 0.5` |
+| 39 | `Interp2` | Channel 2 | 1.0 | On | Off or On | Boolean | `v > 0.5` |
+| 40 | `AModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 41 | `AModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 42 | `FModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 43 | `FModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 44 | `WModTyp2` | Channel 2 | 0.0 | Add | 8 enum values | Type | `floor(0.999 * v * 8)` |
+| 45 | `WModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
+| 46 | `AOffset2` | Channel 2 | 0.5 | 0% | -100% to +100% | % | `200 * (v - 0.5)` |
+| 47 | `AGain2` | Channel 2 | 0.5 | 0 dB, gain 1.0 | Quiet to gain 5000 | dB display | Piecewise gain mapping described below |
+| 48 | `FOffset2` | Channel 2 | 0.5 | 0 Hz | -G Hz to +G Hz | Hz | Symmetric exponential mapping described below |
+| 49 | `FGain2` | Channel 2 | 0.5 | 0 octaves, factor 1.0 | Minimum to factor 5000 | Octaves | Gain mapping as `AGain`; display is `log2(gain)` |
+| 50 | `Oversmp2` | Channel 2 | 0.0 | 1x | 1x to 16x | Multiplier | `1 + floor(15 * v)` |
+| 51 | `SmooWin2` | Channel 2 | 0.0 | 0 samples | 0 to 250 samples | Samples | `floor(250 * v)` |
+| 52 | `OModTyp2` | Channel 2 | 0.0 | Add | 6 enum values | Type | `floor(0.999 * v * 6)` |
+| 53 | `OModMix2` | Channel 2 | 0.0 | 0% | 0% to 100% | % | `100 * v` |
 
 ## Parameter definitions
 
@@ -106,9 +109,9 @@ Each channel contains the same block of 26 parameters. For compatibility, the re
 
 Legacy VST2 index: `0`
 
-The parameter is a display-only dummy used to expose the plug-in version through the VST2 parameter interface. Parameter writes are ignored.
+The legacy parameter is a display-only dummy used to expose the plug-in version through the VST2 parameter interface. In the JUCE implementation it remains registered and the wrapper marks it non-automatable; writes stored by the core do not affect DSP behavior.
 
-**CLAP migration:** Do not publish this as a CLAP parameter. Store the version in `clap_plugin_descriptor.version` and reserve parameter ID `0` to preserve the numbering of all other parameters.
+**Current implementation:** This is registered at index 0 and displayed as the plug-in version. The JUCE wrapper marks it non-automatable; writes are accepted by the core parameter store but do not affect DSP behavior.
 
 ### Buffer Size
 
@@ -135,7 +138,7 @@ Available values:
 
 Default: `4x`.
 
-**CLAP migration:** Publish as a stepped enum parameter. Prefer non-automatable behavior because changing the value may require internal buffer reallocation.
+**Current implementation:** Registered as an ordinary normalized JUCE parameter and automatable by the wrapper. The core quantizes its value to one of eight buffer multipliers.
 
 ### Amplitude Increase Lag
 
@@ -150,7 +153,7 @@ valuePercent = 100 * pow(log10(9*v + 1), 0.2)
 - Default normalized value: `0.1`
 - Effective default: approximately `88.773%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Amplitude Decrease Lag
 
@@ -165,7 +168,7 @@ valuePercent = 100 * pow(log10(9*v + 1), 0.01)
 - Default normalized value: `0.8`
 - Effective default: approximately `99.909%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Gate Level, Amplitude
 
@@ -180,7 +183,7 @@ valuePercent = 100 * (pow(2, 12*v) - 1) / 4095
 - Default normalized value: `0.05`
 - Effective default: approximately `0.0126%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Gate Level, Signal
 
@@ -191,7 +194,7 @@ Defines the signal gate threshold using the same exponential mapping as the ampl
 - Default normalized value: `0.75`
 - Effective default: approximately `12.4817%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### High Trigger
 
@@ -206,7 +209,7 @@ valuePercent = 300 * (v - 0.5)
 - Default normalized value: `0.783`
 - Effective default: `84.9%`
 - Range: `-150%` to `+150%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Low Trigger
 
@@ -221,7 +224,7 @@ valuePercent = 300 * (v - 0.5)
 - Default normalized value: `0.217`
 - Effective default: `-84.9%`
 - Range: `-150%` to `+150%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Minimum Frequency
 
@@ -235,7 +238,7 @@ frequencyHz = (G - 1) * (pow(2, 9*v) - 1) / 511 + 1
 
 - Default normalized value: `0.00055`
 - Range: `1 Hz` to `G Hz`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 - Important: The effective value is sample-rate dependent.
 
 ### Maximum Frequency
@@ -246,7 +249,7 @@ Defines the maximum analyzed or generated frequency using the same mapping as th
 
 - Default normalized value: `0.73`
 - Range: `1 Hz` to `G Hz`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 - Important: The effective value is sample-rate dependent.
 
 ### Frequency Lag
@@ -262,7 +265,7 @@ valuePercent = 100 * pow(log10(9*v + 1), 0.4)
 - Default normalized value: `0.0`
 - Effective default: `0%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Waveform Lag
 
@@ -273,7 +276,7 @@ Controls smoothing or lag for waveform changes using the same mapping as Frequen
 - Default normalized value: `0.0`
 - Effective default: `0%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Invert Trigger
 
@@ -287,7 +290,7 @@ value = v > 0.5
 
 - Default: `Off`
 - Values: `Off`, `On`
-- CLAP type: boolean, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Interpolation
 
@@ -301,7 +304,7 @@ value = v > 0.5
 
 - Default: `On`
 - Values: `Off`, `On`
-- CLAP type: boolean, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Amplitude Modulation Type
 
@@ -325,7 +328,7 @@ selection = floor(0.999 * v * 8)
 | 7 | Pong | LFO-controlled movement between both inputs |
 
 - Default: `Add`
-- CLAP type: enum, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Amplitude Modulation Mix
 
@@ -339,7 +342,7 @@ valuePercent = 100 * v
 
 - Default: `0%`
 - Range: `0%` to `100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Frequency Modulation Type
 
@@ -348,7 +351,7 @@ Legacy names: `FModTyp1`, `FModTyp2`
 Selects the frequency modulation algorithm. It uses the same eight values and mapping as Amplitude Modulation Type.
 
 - Default: `Add`
-- CLAP type: enum, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Frequency Modulation Mix
 
@@ -359,7 +362,7 @@ Controls the amount of frequency modulation.
 - Default: `0%`
 - Range: `0%` to `100%`
 - Mapping: `100 * v`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Waveform Modulation Type
 
@@ -383,7 +386,7 @@ selection = floor(0.999 * v * 8)
 | 7 | Pong | LFO-controlled movement between both waveforms |
 
 - Default: `Add`
-- CLAP type: enum, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Waveform Modulation Mix
 
@@ -394,7 +397,7 @@ Controls the amount of waveform modulation.
 - Default: `0%`
 - Range: `0%` to `100%`
 - Mapping: `100 * v`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Amplitude Offset
 
@@ -409,7 +412,7 @@ valuePercent = 200 * (v - 0.5)
 - Default normalized value: `0.5`
 - Effective default: `0%`
 - Range: `-100%` to `+100%`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Amplitude Gain
 
@@ -438,7 +441,7 @@ Representative values:
 | 1.0 | 5000 | approximately +73.98 dB |
 
 - Default normalized value: `0.5`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Frequency Offset
 
@@ -457,7 +460,7 @@ frequencyOffsetHz = G * normalizedOffset(v)
 - Default normalized value: `0.5`
 - Effective default: `0 Hz`
 - Range: `-G Hz` to `+G Hz`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 - Important: The range is sample-rate dependent.
 
 ### Frequency Gain
@@ -483,7 +486,7 @@ Representative values:
 | 1.0 | 5000 | approximately +12.288 octaves |
 
 - Default normalized value: `0.5`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Oversampling
 
@@ -497,7 +500,7 @@ factor = 1 + floor(15 * v)
 
 - Default: `1x`
 - Integer range: `1x` to `16x`
-- CLAP type: integer, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Smoothing Window
 
@@ -511,7 +514,7 @@ samples = floor(250 * v)
 
 - Default: `0 samples`
 - Integer range: `0` to `250 samples`
-- CLAP type: integer, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Output Modulation Type
 
@@ -533,7 +536,7 @@ selection = floor(0.999 * v * 6)
 | 5 | Pong | LFO-controlled movement between both outputs |
 
 - Default: `Add`
-- CLAP type: enum, stepped, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
 ### Output Modulation Mix
 
@@ -544,38 +547,22 @@ Controls the amount of output modulation.
 - Default: `0%`
 - Range: `0%` to `100%`
 - Mapping: `100 * v`
-- CLAP type: continuous, automatable
+- Host metadata: generic normalized JUCE parameter; automatable in the current wrapper
 
-## Recommended CLAP flags
+## Current VST3 and CLAP parameter behavior
 
-| Parameter group | Recommended behavior |
-|---|---|
-| `Version` | Do not expose as a parameter |
-| `BufrSize` | Stepped; preferably non-automatable |
-| `InvTrig`, `Interp` | Stepped boolean; automatable |
-| `AModTyp`, `FModTyp`, `WModTyp`, `OModTyp` | Stepped enum; automatable |
-| `Oversmp` | Stepped integer; automatable |
-| `SmooWin` | Stepped integer; automatable |
-| All other channel parameters | Continuous; automatable |
+Both formats are produced from the same `LostTechJUCE` processor and its 54 generic JUCE parameters. All parameters except `Version` report automatable. The wrapper forwards normalized values to the core, and supplies the core's names, labels, default values, and formatted display strings. The core clamps incoming values to `[0, 1]`; discrete behavior is implemented inside the DSP mapping, not declared through JUCE choice/boolean/integer parameter types.
 
-## Compatibility requirements
+For VST3, `JUCE_FORCE_USE_LEGACY_PARAM_IDS=1` is set to retain JUCE's legacy parameter identification behavior. For CLAP, the configured plug-in ID is `com.transvaalaudio.losttech`; this project does not assign explicit CLAP parameter IDs or flags independently of the JUCE parameter list. Do not assume the table indices are CLAP IDs.
 
-1. Preserve parameter IDs `1` through `53` exactly as documented.
-2. Reserve ID `0`, even though the version parameter is removed from the public CLAP parameter list.
-3. Preserve all normalized defaults to maintain legacy sound behavior.
-4. Apply parameter events on the audio thread through the CLAP event queue rather than writing directly from the GUI thread.
-5. Recalculate sample-rate-dependent values after activation and whenever the sample rate changes.
-6. Version the serialized CLAP state independently of the plug-in version.
-7. Test every parameter at normalized values `0.0`, `0.5`, and `1.0`, plus each documented default.
-8. For enum and integer parameters, test every discrete value.
-9. Compare rendered output against the legacy VST2 implementation at 44.1, 48, and 96 kHz and with multiple block sizes.
+The processor also exposes the 20 factory presets through JUCE's program interface. Its state serialization stores a format number, parameter count, current program, and all 54 normalized parameter values.
 
 ## Source files
 
-The mapping was derived from the following legacy source files:
+The parameter layout and mappings are implemented in the core and JUCE wrapper. The mapping was derived from these source files:
 
 - `waveplugparams.h`
-- `WavePlugParameters.cpp`
+- `LostTechParameters.cpp`
 - `WavePlug.cpp`
 - `WavePlugEditor.cpp`
 - `wpmodulators.cpp`
