@@ -23,6 +23,8 @@ This document defines the complete legacy VST2 parameter set for **Lost Technolo
 
 > The proposed CLAP ID must be confirmed before the first public release. Once published, it should never be changed.
 
+> The JUCE build (VST3 and CLAP) adds one parameter after the ones below: `Dry/Wet` (ID `drywet`, 0 to 1, default 1, shown as a percentage). It is not part of the VST2 set or of the factory presets, and it is saved with the JUCE plug-in state.
+
 ## Parameter organization
 
 The legacy VST2 parameter order is:

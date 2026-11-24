@@ -4,6 +4,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "DryWet.hpp"
 #include "LostTechCore.hpp"
 
 // JUCE shell around LostTechCore. The core keeps its own parameter store and locking, so each
@@ -29,16 +30,24 @@ public:
 	int getNumPrograms() override {return LostTechCore::getNumPresets();}
 	int getCurrentProgram() override {return currentProgram;}
 	void setCurrentProgram(int index) override;
+	// Applies a preset even when it is the current program (the editor's menu uses this to reset a sound).
+	void loadPreset(int index);
 	const juce::String getProgramName(int index) override {return LostTechCore::getPresetName(index);}
 	void changeProgramName(int, const juce::String &) override {}
 
 	// The editor reads the live signal monitors straight from the core.
 	LostTechCore &getCore() {return core;}
+	// Dry/wet mix of the whole plug-in (0 = input only, 1 = fully processed). Not part of the VST2 plug-in
+	// or of the presets; it is saved with the state.
+	juce::AudioParameterFloat &getMixParameter() {return *mix;}
 
 	void getStateInformation(juce::MemoryBlock &) override;
 	void setStateInformation(const void *, int) override;
 
 private:
 	LostTechCore core;
+	juce::AudioParameterFloat *mix; // Owned by the processor, like every added parameter.
+	DryWet dryWet;
+	juce::AudioBuffer<float> dry;   // Input copy, sized in prepareToPlay so processBlock never allocates.
 	std::atomic<int> currentProgram{0};
 };
