@@ -489,12 +489,16 @@
 	To set buffer sizes, click the box labeled "buffer size" in the upper left corner and choose a size from the popup menu. The display boxes to the right of the selection box show memory use, minimum Analyzer output frequency and maximum bufferable waveform length for the current buffer size setting.
 </p>
 <p>
+	In the VST3 and CLAP versions, the slider between "dry" and "wet" in the upper bar mixes the unprocessed input back into the output. At the far left only the input is heard, at the far right only the output of Lost Technology (the default); double-click the slider to return to 100%. It is an extra host parameter (Dry/Wet) after the 54 others, it is saved with the project, and choosing a preset does not change it. The VST 2 plugin has no such control.
+</p>
+
+<p>
 	When the "help" button in the lower right corner is selected (solid white), a brief description of the most recently modified parameter / selected modulator function is displayed to the left of the button.
 </p>
 
 <h2><a id="use_presets">Factory presets</a></h2>
 <p>
-	Lost Technology comes with 20 factory presets. They are listed in the program or preset menu of the host (the VST 2 plugin offers them as programs; how a host shows the programs of the VST3 and CLAP versions varies). Choosing a preset sets every parameter, including the buffer size, so it replaces the current sound. In the VST3 and CLAP versions, choosing the program that is already selected does nothing.
+	Lost Technology comes with 20 factory presets. In the VST3 and CLAP versions, click the logo in the middle of the panel to open a menu of the presets. The current one is ticked, choosing it again restores its sound, and the bottom bar shows the chosen name for a few seconds. The VST 2 plugin offers the presets as programs of the host, and so do VST3 hosts that list programs; CLAP has no programs, so CLAP hosts only have the logo menu. Choosing a preset sets every parameter, including the buffer size, so it replaces the current sound; it leaves the Dry/Wet mix alone.
 </p>
 <p>
 	The presets are starting points. What you hear depends on the input (see <a href="#use_sounds">Creating sounds</a>), so the table lists what each one expects. Input 1 is the left input and Input 2 the right one. Frequencies are given for sample rates of 44.1 kHz and up.
@@ -592,7 +596,8 @@
 		<h3>2026-11-23 - v0.3.0 - VST3 and CLAP versions, new window</h3>
 		<ul class="bullets">
 			<li>New: VST3 and CLAP versions for Windows, macOS and Linux, built with JUCE. They have the same 54 parameters in the same order as the VST 2 plugin. The VST3 is marked as a replacement for the VST 2 plugin (how far hosts honor this varies).</li>
-			<li>New: 20 factory presets, available as programs in all formats. The VST3 and CLAP versions now also save the selected program with the state; sessions saved earlier still load.</li>
+			<li>New: 20 factory presets, available as programs in all formats. In the VST3 and CLAP versions they can also be chosen from a menu behind the logo. These versions now also save the selected program with the state; sessions saved earlier still load.</li>
+			<li>New: Dry/Wet slider in the upper bar of the VST3 and CLAP versions.</li>
 			<li>New window in the VST3 and CLAP versions: the original layout redrawn with scalable graphics, so the window can be resized. Parameter locks and the HELP bar work as before. The VST 2 window is unchanged.</li>
 			<li>Each plugin instance now keeps its own sample rate. Before, instances running at different sample rates could disturb each other.</li>
 			<li>Changing the buffer size or the smoothing window no longer allocates memory in the audio thread. Parameter values are clamped to the range 0-1, and invalid (NaN) values are handled.</li>

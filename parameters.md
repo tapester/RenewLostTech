@@ -24,6 +24,8 @@ This document records the legacy VST2 parameter layout and how the current JUCE-
 
 The CLAP ID above is the one configured in `juce/CMakeLists.txt`.
 
+> The JUCE build (VST3 and CLAP) adds one parameter after the ones below: `Dry/Wet` (ID `drywet`, 0 to 1, default 1, shown as a percentage). It is not part of the VST2 set or of the factory presets, and it is saved with the JUCE plug-in state.
+
 ## Parameter organization
 
 The legacy VST2 parameter order is:
