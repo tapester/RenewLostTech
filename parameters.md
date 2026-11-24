@@ -15,7 +15,7 @@ This document defines the complete legacy VST2 parameter set for **Lost Technolo
 | VST2 unique ID, decimal | `1129395025` |
 | Recommended CLAP ID | `org.renewlosttech.losttechnology` |
 | Plug-in category | Effect |
-| Programs | 1 |
+| Programs | 20 factory presets, defined in `LostTechParameters.cpp` |
 | Audio inputs | 2 |
 | Audio outputs | 2 |
 | Total VST2 parameters | 54 |

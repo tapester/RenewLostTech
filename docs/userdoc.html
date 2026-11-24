@@ -50,6 +50,7 @@
 		<ul class="sublist">
 			<li><a class="subsection" href="#use_connect">Connecting with the host</a></li>
 			<li><a class="subsection" href="#use_param">Setting parameters</a></li>
+			<li><a class="subsection" href="#use_presets">Factory presets</a></li>
 			<li><a class="subsection" href="#use_sounds">Creating sounds</a></li>
 			<li><a class="subsection" href="#use_secret">Secret techniques</a></li>
 		</ul>
@@ -489,6 +490,37 @@
 	When the "help" button in the lower right corner is selected (solid white), a brief description of the most recently modified parameter / selected modulator function is displayed to the left of the button.
 </p>
 
+<h2><a id="use_presets">Factory presets</a></h2>
+<p>
+	Lost Technology comes with 20 factory presets. They are listed in the program or preset menu of the host (the VST 2 plugin offers them as programs; how a host shows the programs of the VST3 and CLAP versions varies). Choosing a preset sets every parameter, including the buffer size, so it replaces the current sound. In the VST3 and CLAP versions, choosing the program that is already selected does nothing.
+</p>
+<p>
+	The presets are starting points. What you hear depends on the input (see <a href="#use_sounds">Creating sounds</a>), so the table lists what each one expects. Input 1 is the left input and Input 2 the right one. Frequencies are given for sample rates of 44.1 kHz and up.
+</p>
+<table summary="The factory presets, the input each one expects and its settings">
+	<tr><th>Preset</th><th>Input</th><th>What it does</th></tr>
+		<tr><td>Init Reference</td><td>any simple mono sound</td><td>All parameters at their defaults: a plain analysis and resynthesis. A good starting point for your own settings.</td></tr>
+		<tr><td>Clean Mono Tracker</td><td>a monophonic lead</td><td><var>FMin</var> 80 Hz and <var>FMax</var> 1 kHz limit the Analyzer to the range of the instrument. <var>Oversmpl</var> 4x, <var>SmooWin</var> 16.</td></tr>
+		<tr><td>Portamento Glide</td><td>a monophonic lead</td><td><var>FLag</var> 93%: the output pitch slides toward each new pitch instead of jumping to it.</td></tr>
+		<tr><td>Gate Hold</td><td>plucks, drum hits or other loud, short sounds</td><td><var>GateLvlA</var> and <var>GateLvlS</var> about 43%: frequency and waveform are only updated while the input is loud, and are held in between.</td></tr>
+		<tr><td>Drone Sustain</td><td>a simple tone</td><td><var>AOffset</var> +15% keeps the output sounding when the input stops. <var>GateLvlA</var> and <var>GateLvlS</var> about 3.6% freeze the last frequency and waveform; without the gates the pitch decays to a low rumble.</td></tr>
+		<tr><td>Octave Up</td><td>a monophonic sound</td><td><var>FGain</var> +1 octave, <var>Oversmpl</var> 4x. A 220 Hz input comes out at 440 Hz.</td></tr>
+		<tr><td>Fifth Up</td><td>a monophonic sound</td><td><var>FGain</var> +0.585 octaves (a factor of 1.5), <var>Oversmpl</var> 4x. A 220 Hz input comes out at 330 Hz.</td></tr>
+		<tr><td>Monotone Robot</td><td>a voice or another monophonic sound</td><td><var>FGain</var> at its minimum and <var>FOffset</var> +165 Hz, with <var>FMin</var> 80 Hz and <var>FMax</var> 800 Hz: the output always plays 165 Hz, with the amplitude and waveform of the input.</td></tr>
+		<tr><td>Stereo Detune Widener</td><td>one mono input</td><td><var>FOffset</var> +3 Hz on channel 1 and -3 Hz on channel 2: the two outputs play the same sound, slightly out of tune with each other (220 Hz in gives 223 Hz and 217 Hz).</td></tr>
+		<tr><td>Arp Painter</td><td>Input 1: a looping sustained sine pattern. Input 2: any instrument</td><td>The technique from <a href="#use_secret">Secret techniques</a>: amplitude Modulator 1 and waveform Modulator 1 at Add 100%, and output Modulator 2 at Add 100%. The pitch comes from Input 1, the amplitude and waveform from Input 2. Both outputs carry the same sound.</td></tr>
+		<tr><td>Octave-Jump Arpeggiator</td><td>as Arp Painter</td><td>As Arp Painter, with the frequency Modulator 1 at Fine 100%.</td></tr>
+		<tr><td>Waveshaper</td><td>Input 1: the sound to shape. Input 2: the shaping signal</td><td>Waveform Modulator 1 at Comp 100% and output Modulator 2 at Add 100%. The waveform of Input 2 shapes Input 1.</td></tr>
+		<tr><td>Rhythm Gate</td><td>Input 1: a sustained sound. Input 2: a rhythmic sound such as drums</td><td>Amplitude Modulator 1 at Add 100% and output Modulator 2 at Add 100%: the loudness of Input 2 is applied to the pitch and waveform of Input 1.</td></tr>
+		<tr><td>Signal Distortion</td><td>Input 1: the sound to distort. Input 2: a control sound</td><td>Waveform Modulator 1 at Dist 70% and output Modulator 2 at Add 100%: the louder Input 2 is, the more Input 1 is distorted.</td></tr>
+		<tr><td>Ring Mult</td><td>two sounds</td><td>Output Modulator 1 at Mult 100% and output Modulator 2 at Mult 60%: the output is the product of the two resynthesized sounds, similar to ring modulation.</td></tr>
+		<tr><td>Convolution Filter</td><td>Input 1: the sound to filter. Input 2: the filter source</td><td>Waveform Modulator 1 at Conv 40% (a filter about 13 samples long) and output Modulator 2 at Add 100%. Input 2 supplies the impulse response; move the mix between 0% and 100% for filter lengths from 2 to 30.</td></tr>
+		<tr><td>Pong Morph</td><td>two sounds</td><td>Waveform Modulator 1 at Pong 30% and both output Modulators at Pong 15%: the sound slowly morphs back and forth between the two inputs. A higher <var>ModMix</var> makes it faster.</td></tr>
+		<tr><td>Lo-Fi Crunch</td><td>anything</td><td><var>Interp</var> off and a buffer size of 2x: a rougher, harsher sound.</td></tr>
+		<tr><td>Soft Pad</td><td>sustained sounds</td><td><var>Oversmpl</var> 8x, <var>SmooWin</var> 40, <var>WLag</var> 50%, <var>FLag</var> 40%: a softer result, at a higher CPU load.</td></tr>
+		<tr><td>Inverted Trigger Texture</td><td>one mono input</td><td><var>InvTrig</var> on channel 1 only: the two channels cut their cycles differently, so the two outputs differ.</td></tr>
+</table>
+
 <h2><a id="use_sounds">Creating sounds</a></h2>
 <p>
 	The algorithms Lost Technology uses to process sound are based on very easy math and are therefore not particularly intelligent. If the input is too complicated for the algorithms to deal with, the output will be too garbled and atonal to fit as a melodic part in a song. Chaotic output can be made somewhat more coherent through careful parameter tweaking, but in most cases the improvement will not be large enough to make the output work musically.
@@ -558,6 +590,7 @@
 		<h3>2026-11-23 - v0.3.0 - VST3 and CLAP versions, new window</h3>
 		<ul class="bullets">
 			<li>New: VST3 and CLAP versions for Windows, macOS and Linux, built with JUCE. They have the same 54 parameters in the same order as the VST 2 plugin. The VST3 is marked as a replacement for the VST 2 plugin (how far hosts honor this varies).</li>
+			<li>New: 20 factory presets, available as programs in all formats. The VST3 and CLAP versions now also save the selected program with the state; sessions saved earlier still load.</li>
 			<li>New window in the VST3 and CLAP versions: the original layout redrawn with scalable graphics, so the window can be resized. Parameter locks and the HELP bar work as before. The VST 2 window is unchanged.</li>
 			<li>Each plugin instance now keeps its own sample rate. Before, instances running at different sample rates could disturb each other.</li>
 			<li>Changing the buffer size or the smoothing window no longer allocates memory in the audio thread. Parameter values are clamped to the range 0-1, and invalid (NaN) values are handled.</li>

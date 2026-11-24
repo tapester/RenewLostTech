@@ -159,6 +159,11 @@ public: // public methods
 	void getParameterDisplay(int index, char *text);
 	void getParameterDisplay(int index, float value, char *text); // For a value other than the current one.
 	static float getParameterDefault(int index);
+	// Factory presets. A preset is a full set of parameter values (index and range as above);
+	// a shell applies one by setting every parameter except kPlugVersion. Names fit VST2's 24 characters.
+	static int getNumPresets();
+	static const char *getPresetName(int preset);
+	static float getPresetValue(int preset, int index);
 	void getParameterName(int index, char *text);
 	void getParameterLabel(int index, char *label);
 	

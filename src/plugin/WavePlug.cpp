@@ -28,13 +28,13 @@ DEALINGS IN THE SOFTWARE.
 #endif
 
 WavePlug::WavePlug(audioMasterCallback audioMaster) :
-	AudioEffectX(audioMaster, 1, kNumAllParams)
+	AudioEffectX(audioMaster, LostTechCore::getNumPresets(), kNumAllParams)
 {
 	setNumInputs(2);
 	setNumOutputs(2);
 	setUniqueID(CCONST('C','Q','C','Q'));
 	canProcessReplacing();
-	std::strcpy(programName, "Default");
+	std::snprintf(programName, sizeof(programName), "%s", LostTechCore::getPresetName(0));
 	
 	editor = NULL;
 	
@@ -97,7 +97,16 @@ VstInt32 WavePlug::canDo(char *text) {
 	return 0l;
 }
 
-void WavePlug::setProgram(VstInt32 program) {}
+// Each program is a factory preset. Selecting one overwrites all parameters; the name stays editable
+// only until the next program change.
+void WavePlug::setProgram(VstInt32 program) {
+	if (program < 0 || program >= LostTechCore::getNumPresets())
+		return;
+	AudioEffectX::setProgram(program);
+	for (int i = kPlugVersion + 1; i < kNumAllParams; i++)
+		setParameter(i, LostTechCore::getPresetValue(program, i));
+	std::snprintf(programName, sizeof(programName), "%s", LostTechCore::getPresetName(program));
+}
 
 void WavePlug::setProgramName(char *name) {
 	std::snprintf(programName, sizeof(programName), "%s", name);
@@ -108,8 +117,8 @@ void WavePlug::getProgramName(char *name) {
 }
 
 bool WavePlug::getProgramNameIndexed(VstInt32 category, VstInt32 index, char *text) {
-	if ((category == 0 || category == -1) && index == 0) {
-		std::snprintf(text, 32, "%s", programName);
+	if ((category == 0 || category == -1) && index >= 0 && index < LostTechCore::getNumPresets()) {
+		std::snprintf(text, 32, "%s", LostTechCore::getPresetName(index));
 		return true;
 	}
 	return false;
