@@ -246,3 +246,92 @@ const LostTechCore::methodf LostTechCore::paramSetters[kNumParams] = {
 	&LostTechCore::mOMixSetter
 };
 
+// Factory presets. Each one starts from the defaults and lists only what differs.
+// Frequencies are for 44.1 kHz and up (the 22 kHz maximum), and scale down below that.
+// Modulator types sit mid-step, so floor(0.999 * v * count) lands on the intended entry.
+namespace {
+
+enum {kEnd, kGlobal, kCh1, kCh2, kBoth}; // Where an edit applies; kEnd (0) closes the list.
+
+struct PresetEdit {int where, param; float value;};
+
+struct Preset {
+	const char *name; // At most 24 characters, the VST2 program-name limit.
+	PresetEdit edits[6];
+};
+
+const Preset presets[] = {
+	{"Init Reference", {}},
+	// Analyzer range limited to a mono lead (80 Hz to 1 kHz), 4x oversampling, light smoothing.
+	{"Clean Mono Tracker", {{kBoth, kFMin, 0.167f}, {kBoth, kFMax, 0.5108f},
+	                        {kBoth, kOversmpl, 0.2333f}, {kBoth, kSmooWin, 0.066f}}},
+	// FLag 93%: the detected pitch is approached slowly.
+	{"Portamento Glide", {{kBoth, kFLag, 0.6472f}}},
+	// Gates at about 43%: pitch and timbre only update on loud hits, and are held in between.
+	{"Gate Hold", {{kBoth, kGateLvlA, 0.9f}, {kBoth, kGateLvlS, 0.9f}}},
+	// AOffset +15% keeps it sounding on silence; gates at about 3.6% then freeze the last pitch
+	// and waveform (without them the pitch decays to a low rumble).
+	{"Drone Sustain", {{kBoth, kAOffset, 0.575f}, {kBoth, kGateLvlA, 0.6f}, {kBoth, kGateLvlS, 0.6f}}},
+	// FGain +1 octave (factor 2) and +0.585 octaves (factor 1.5), with 4x oversampling.
+	{"Octave Up", {{kBoth, kFGain, 0.75f}, {kBoth, kOversmpl, 0.2333f}}},
+	{"Fifth Up", {{kBoth, kFGain, 0.6667f}, {kBoth, kOversmpl, 0.2333f}}},
+	// FGain at minimum, FOffset +165 Hz: a fixed pitch with the input's amplitude and waveform.
+	{"Monotone Robot", {{kBoth, kFMin, 0.167f}, {kBoth, kFMax, 0.4766f},
+	                    {kBoth, kFGain, 0.0f}, {kBoth, kFOffset, 0.7795f}}},
+	// FOffset +3 Hz and -3 Hz: one mono input, two detuned voices.
+	{"Stereo Detune Widener", {{kCh1, kFOffset, 0.6035f}, {kCh2, kFOffset, 0.3965f}}},
+	// Input 1 gives the pitch; Input 2 gives amplitude and waveform. Output 2 repeats channel 1.
+	{"Arp Painter", {{kCh1, kAModMix, 1.0f}, {kCh1, kWModMix, 1.0f}, {kCh2, kOModMix, 1.0f}}},
+	// The same with FMod1 = Fine 100% (octave jumps).
+	{"Octave-Jump Arpeggiator", {{kCh1, kAModMix, 1.0f}, {kCh1, kWModMix, 1.0f},
+	                             {kCh2, kOModMix, 1.0f}, {kCh1, kFModType, 0.4375f},
+	                             {kCh1, kFModMix, 1.0f}}},
+	// WMod1 = Comp 100%: Input 2's waveform shapes Input 1.
+	{"Waveshaper", {{kCh1, kWModType, 0.6875f}, {kCh1, kWModMix, 1.0f}, {kCh2, kOModMix, 1.0f}}},
+	// AMod1 = Add 100%: Input 2's loudness plays Input 1's pitch and timbre.
+	{"Rhythm Gate", {{kCh1, kAModMix, 1.0f}, {kCh2, kOModMix, 1.0f}}},
+	// WMod1 = Dist 70%: the level of Input 2 sets how hard Input 1 is distorted.
+	{"Signal Distortion", {{kCh1, kWModType, 0.4375f}, {kCh1, kWModMix, 0.7f}, {kCh2, kOModMix, 1.0f}}},
+	// OMod = Mult: the product of the two resynthesized voices.
+	{"Ring Mult", {{kCh1, kOModType, 0.4167f}, {kCh1, kOModMix, 1.0f},
+	               {kCh2, kOModType, 0.4167f}, {kCh2, kOModMix, 0.6f}}},
+	// WMod1 = Conv 40% (about 13 taps): Input 2's waveform is the filter's impulse response.
+	{"Convolution Filter", {{kCh1, kWModType, 0.8125f}, {kCh1, kWModMix, 0.4f}, {kCh2, kOModMix, 1.0f}}},
+	// WMod1 = Pong 30%, OMod = Pong 15%: slow morphing between the two sources.
+	{"Pong Morph", {{kCh1, kWModType, 0.9375f}, {kCh1, kWModMix, 0.3f},
+	                {kBoth, kOModType, 0.9167f}, {kBoth, kOModMix, 0.15f}}},
+	// No interpolation, smallest useful buffer (2x).
+	{"Lo-Fi Crunch", {{kBoth, kInterp, 0.0f}, {kGlobal, kBufferSize, 1.0f / 7.0f}}},
+	// 8x oversampling, 40-sample smoothing, a little waveform and frequency lag.
+	{"Soft Pad", {{kBoth, kOversmpl, 0.5f}, {kBoth, kSmooWin, 0.162f},
+	              {kBoth, kWLag, 0.0558f}, {kBoth, kFLag, 0.0292f}}},
+	// Inverted trigger on channel 1 only: the two channels cut cycles differently.
+	{"Inverted Trigger Texture", {{kCh1, kInvTrig, 1.0f}}}
+};
+
+} // namespace
+
+int LostTechCore::getNumPresets() {return (int) (sizeof presets / sizeof *presets);}
+
+const char *LostTechCore::getPresetName(int preset) {
+	return (preset >= 0 && preset < getNumPresets()) ? presets[preset].name : "";
+}
+
+float LostTechCore::getPresetValue(int preset, int index) {
+	float value = getParameterDefault(index);
+	if (preset < 0 || preset >= getNumPresets())
+		return value;
+	const bool stereo = index >= kNumMonoParams;
+	const int channel = (index - kNumMonoParams) / kNumParams; // Only meaningful when stereo.
+	for (const PresetEdit &e : presets[preset].edits) {
+		if (e.where == kEnd)
+			break;
+		const bool hit = (e.where == kGlobal) ? index == e.param :
+			stereo && (index - kNumMonoParams) % kNumParams == e.param &&
+			(e.where == kBoth || e.where == kCh1 + channel);
+		if (hit)
+			value = e.value;
+	}
+	return value;
+}
+

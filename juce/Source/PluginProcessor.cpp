@@ -4,8 +4,9 @@
 
 namespace {
 
-// Saved state: a format number, the parameter count, then every parameter value.
-constexpr int kStateFormat = 1;
+// Saved state: a format number, the parameter count, the program number, then every parameter value.
+// Format 1 (no program number) still loads.
+constexpr int kStateFormat = 2;
 
 class CoreParameter : public juce::AudioProcessorParameter {
 public:
@@ -76,19 +77,39 @@ juce::AudioProcessorEditor *LostTechProcessor::createEditor() {
 	return new LostTechEditor(*this);
 }
 
+// Selecting a preset overwrites every parameter. Re-selecting the current program does nothing,
+// because some hosts replay the program number after loading the state, which would wipe the sound.
+void LostTechProcessor::setCurrentProgram(int index) {
+	if (index < 0 || index >= getNumPrograms() || index == currentProgram)
+		return;
+	currentProgram = index;
+	for (int i = kPlugVersion + 1; i < kNumAllParams; i++)
+		getParameters()[i]->setValueNotifyingHost(LostTechCore::getPresetValue(index, i));
+}
+
 void LostTechProcessor::getStateInformation(juce::MemoryBlock &destData) {
 	juce::MemoryOutputStream out(destData, false);
 	out.writeInt(kStateFormat);
 	out.writeInt(kNumAllParams);
+	out.writeInt(currentProgram);
 	for (int i = 0; i < kNumAllParams; i++)
 		out.writeFloat(core.getParameter(i));
 }
 
 void LostTechProcessor::setStateInformation(const void *data, int sizeInBytes) {
 	juce::MemoryInputStream in(data, (size_t) sizeInBytes, false);
-	if (sizeInBytes < 8 || in.readInt() != kStateFormat || in.readInt() != kNumAllParams ||
-	    sizeInBytes != 8 + 4 * kNumAllParams)
+	if (sizeInBytes < 8)
 		return;
+	const int format = in.readInt();
+	const int headerBytes = (format == kStateFormat) ? 12 : 8;
+	if ((format != 1 && format != kStateFormat) || in.readInt() != kNumAllParams ||
+	    sizeInBytes != headerBytes + 4 * kNumAllParams)
+		return;
+	if (format == kStateFormat) {
+		const int program = in.readInt();
+		if (program >= 0 && program < getNumPrograms())
+			currentProgram = program;
+	}
 	for (int i = 0; i < kNumAllParams; i++) {
 		core.setParameter(i, in.readFloat());
 		// Tell the editor; not the host, which is the one loading this state.

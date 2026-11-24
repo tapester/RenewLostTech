@@ -190,6 +190,15 @@ if(BUILD_TESTING)
     target_compile_definitions(golden_test PRIVATE ${PLUGIN_VERSION_DEFINITIONS})
     add_test(NAME golden_test
         COMMAND golden_test ${CMAKE_CURRENT_SOURCE_DIR}/tests/core/golden_reference.bin)
+
+    # Factory presets: values, names and audio sanity, again on the core alone.
+    add_executable(preset_test tests/core/preset_test.cpp ${CORE_SOURCE_FILES})
+    if(WIN32)
+        target_compile_definitions(preset_test PRIVATE NOMINMAX)
+    endif()
+    target_include_directories(preset_test PRIVATE src/common src/core src/dsp)
+    target_compile_definitions(preset_test PRIVATE ${PLUGIN_VERSION_DEFINITIONS})
+    add_test(NAME preset_test COMMAND preset_test)
 endif()
 
 # ---------------------------------------------------------------------------

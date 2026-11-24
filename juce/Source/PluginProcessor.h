@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "LostTechCore.hpp"
@@ -23,10 +25,11 @@ public:
 	bool producesMidi() const override {return false;}
 	double getTailLengthSeconds() const override {return 0.0;}
 
-	int getNumPrograms() override {return 1;}
-	int getCurrentProgram() override {return 0;}
-	void setCurrentProgram(int) override {}
-	const juce::String getProgramName(int) override {return "Default";}
+	// Programs are the factory presets from the core. Names are fixed.
+	int getNumPrograms() override {return LostTechCore::getNumPresets();}
+	int getCurrentProgram() override {return currentProgram;}
+	void setCurrentProgram(int index) override;
+	const juce::String getProgramName(int index) override {return LostTechCore::getPresetName(index);}
 	void changeProgramName(int, const juce::String &) override {}
 
 	// The editor reads the live signal monitors straight from the core.
@@ -37,4 +40,5 @@ public:
 
 private:
 	LostTechCore core;
+	std::atomic<int> currentProgram{0};
 };
