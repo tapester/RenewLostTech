@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdio>
+#include <functional>
 #include "BinaryData.h"
 #include "PluginProcessor.h"
 #include "wpfunc.hpp"
@@ -130,6 +131,12 @@ struct KnobLook : juce::LookAndFeel_V4 {
 		g.setColour(colour.darker(0.7f));
 		g.strokePath(t, juce::PathStrokeType(1.0f));
 	}
+	void drawLinearSlider(juce::Graphics &g, int x, int y, int w, int h, float pos, float, float,
+	                      juce::Slider::SliderStyle, juce::Slider &) override {
+		g.setColour(juce::Colours::white);
+		g.fillRect(x, y + h / 2, w, 1);
+		g.fillRect(juce::roundToInt(pos) - 2, y + 1, 4, h - 2);
+	}
 	// The buffer-size box is just white text on black, like the original menu (no arrow).
 	void drawComboBox(juce::Graphics &g, int, int, bool, int, int, int, int, juce::ComboBox &) override {
 		g.fillAll(juce::Colours::black);
@@ -139,6 +146,14 @@ struct KnobLook : juce::LookAndFeel_V4 {
 		label.setFont(getComboBoxFont(box));
 	}
 	juce::Font getComboBoxFont(juce::ComboBox &) override {return smallFont();}
+};
+
+// An invisible click target (the logo opens the preset menu).
+class ClickArea : public juce::Component {
+public:
+	std::function<void()> onClick;
+	ClickArea() {setMouseCursor(juce::MouseCursor::PointingHandCursor);}
+	void mouseDown(const juce::MouseEvent &) override {if (onClick) onClick();}
 };
 
 // The static artwork: background, dividers, and the fixed labels.
@@ -176,6 +191,8 @@ public:
 		g.drawText("kB", 146, 5, 18, 10, juce::Justification::left, false);
 		g.drawText("Hz", 201, 5, 18, 10, juce::Justification::left, false);
 		g.drawText("ms", 256, 5, 18, 10, juce::Justification::left, false);
+		g.drawText("dry", 281, 5, 18, 10, juce::Justification::left, false);
+		g.drawText("wet", 351, 5, 18, 10, juce::Justification::left, false);
 
 		g.setColour(juce::Colours::black);
 		for (int ch = 0; ch < 2; ch++)
@@ -199,7 +216,7 @@ private:
 class LostTechEditor : public juce::AudioProcessorEditor, private juce::Timer {
 public:
 	explicit LostTechEditor(LostTechProcessor &p) :
-		AudioProcessorEditor(p), core(p.getCore()),
+		AudioProcessorEditor(p), proc(p), core(p.getCore()), mixParam(p.getMixParameter()),
 		version(juce::Colours::white, juce::Justification::right),
 		helpBar(juce::Colours::white, juce::Justification::left) {
 		using namespace lostgui;
@@ -289,6 +306,38 @@ public:
 			content.addAndMakeVisible(bufferInfo[k]);
 		}
 
+		// Dry/wet mix (whole plug-in, VST3 and CLAP only): a slider in the upper bar.
+		mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+		mixSlider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+		mixSlider.setRange(0.0, 1.0, 0.0);
+		mixSlider.setDoubleClickReturnValue(true, 1.0);
+		mixSlider.setLookAndFeel(&knobLook);
+		mixSlider.setBounds(299, 5, 50, 10);
+		mixSlider.onDragStart = [this] {
+			mixDragging = true;
+			mixParam.beginChangeGesture();
+			touched = kMixTouched;
+		};
+		mixSlider.onDragEnd = [this] {
+			mixParam.endChangeGesture();
+			mixDragging = false;
+		};
+		mixSlider.onValueChange = [this] {
+			touched = kMixTouched;
+			if (mixDragging)
+				mixParam.setValueNotifyingHost((float) mixSlider.getValue());
+			else
+				gesture(mixParam, (float) mixSlider.getValue()); // Double-click reset.
+		};
+		content.addAndMakeVisible(mixSlider);
+		mixValue.setBounds(370, 5, 34, 10);
+		content.addAndMakeVisible(mixValue);
+
+		// The logo opens the preset menu.
+		logoArea.setBounds(192, 148, 128, 64);
+		logoArea.onClick = [this] {showPresetMenu();};
+		content.addAndMakeVisible(logoArea);
+
 		version.setBounds(407, 5, 100, 10);
 		version.set(core.getVersionString());
 		content.addAndMakeVisible(version);
@@ -309,6 +358,7 @@ public:
 		for (auto &c : controls)
 			c.slider.setLookAndFeel(nullptr);
 		bufferSize.setLookAndFeel(nullptr);
+		mixSlider.setLookAndFeel(nullptr);
 	}
 
 	void resized() override {
@@ -328,11 +378,28 @@ private:
 	};
 
 	// One change of one parameter, as a host automation gesture.
-	void gesture(int index, float value) {
-		auto &prm = *params[(size_t) index];
+	static void gesture(juce::AudioProcessorParameter &prm, float value) {
 		prm.beginChangeGesture();
 		prm.setValueNotifyingHost(value);
 		prm.endChangeGesture();
+	}
+	void gesture(int index, float value) {gesture(*params[(size_t) index], value);}
+
+	// Lists the factory presets; choosing one replaces every parameter except the dry/wet mix.
+	void showPresetMenu() {
+		juce::PopupMenu menu;
+		menu.addSectionHeader("Factory presets");
+		for (int i = 0; i < proc.getNumPrograms(); i++)
+			menu.addItem(i + 1, proc.getProgramName(i), true, i == proc.getCurrentProgram());
+		menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&logoArea),
+			[safe = juce::Component::SafePointer<LostTechEditor>(this)](int result) {
+				if (safe == nullptr || result <= 0)
+					return;
+				safe->proc.loadPreset(result - 1);
+				// Tells hosts that show programs, and the CLAP wrapper to re-read all values.
+				safe->proc.updateHostDisplay(juce::AudioProcessor::ChangeDetails().withProgramChanged(true));
+				safe->noticeTicks = 90; // About three seconds on the bottom bar.
+			});
 	}
 
 	// A lock links the two channels' copies of a parameter: its own, its component's, or the global one.
@@ -376,6 +443,11 @@ private:
 				r[1].set(text);
 			}
 
+		const float mix = mixParam.get();
+		if (!mixDragging)
+			mixSlider.setValue(mix, juce::dontSendNotification);
+		mixValue.set(juce::String(juce::roundToInt(100.0f * mix)) + " %");
+
 		const float size = params[kBufferSize]->getValue();
 		if (!bufferSize.isPopupActive())
 			bufferSize.setSelectedItemIndex(juce::roundToInt(7.0f * size), juce::dontSendNotification);
@@ -388,12 +460,23 @@ private:
 
 		// The bar shows the help for the last control used while HELP is on, otherwise the licence notice.
 		// The notice tells users where to get the source (this build is distributed under the AGPLv3).
-		helpBar.set(help.getToggleState() && touched >= 0
-			? juce::String(core.getParamHelpText(touched))
-			: juce::String("Free software under the GNU AGPLv3, built with JUCE. Source: github.com/tapester/RenewLostTech"));
+		if (noticeTicks > 0) { // After choosing a preset.
+			noticeTicks--;
+			helpBar.set("Preset: " + proc.getProgramName(proc.getCurrentProgram()));
+		} else if (help.getToggleState() && touched == kMixTouched) {
+			helpBar.set("Dry/Wet: how much of the unprocessed input is mixed back in. 0% is the input alone, 100% the plug-in alone.");
+		} else {
+			helpBar.set(help.getToggleState() && touched >= 0 && touched < kNumAllParams
+				? juce::String(core.getParamHelpText(touched))
+				: juce::String("Free software under the GNU AGPLv3, built with JUCE. Source: github.com/tapester/RenewLostTech"));
+		}
 	}
 
+	static constexpr int kMixTouched = kNumAllParams; // `touched` value for the dry/wet slider.
+
+	LostTechProcessor &proc;
 	LostTechCore &core;
+	juce::AudioParameterFloat &mixParam;
 	std::vector<juce::AudioProcessorParameter *> params;
 	lostgui::KnobLook knobLook;
 	juce::Component content;
@@ -402,6 +485,11 @@ private:
 	lostgui::LockButton locks[2][lostgui::kNLocks];
 	Readout monitors[2][2][2]; // [channel][pre/post][amplitude/frequency]
 	juce::ComboBox bufferSize;
+	juce::Slider mixSlider;
+	Readout mixValue{juce::Colours::white, juce::Justification::right};
+	lostgui::ClickArea logoArea;
+	int noticeTicks = 0;
+	bool mixDragging = false;
 	Readout bufferInfo[3] = {Readout(juce::Colours::white, juce::Justification::right),
 	                         Readout(juce::Colours::white, juce::Justification::right),
 	                         Readout(juce::Colours::white, juce::Justification::right)};
